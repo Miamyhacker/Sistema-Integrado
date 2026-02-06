@@ -74,6 +74,6 @@ if 'ativo' not in st.session_state:
     if st.button("DESATIVAR"):
                 del st.session_state['ativo']
                 del st.session_state['localizado']
-        st.rerun()
+                st.rerun()
 
 st.markdown('<div class="footer">SISTEMA DE SEGURANÇA INTEGRADO | Miamy ©2026</div>', unsafe_allow_html=True)
