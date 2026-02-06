@@ -68,9 +68,9 @@ if 'ativo' not in st.session_state:
             st.info("Aguardando permissão de GPS... Verifique o topo do navegador.")
 
     else:
-        st.success(f"Proteção Ativa no {st.session_state['dados']['dev']}")
-        df = pd.DataFrame({'lat': [st.session_state['dados']['lat']], 'lon': [st.session_state['dados']['lon']]})
-        st.map(df)
+            st.success(f"Proteção Ativa no {st.session_state['dados']['dev']}")
+            df = pd.DataFrame({'lat': [st.session_state['dados']['lat']], 'lon': [st.session_state['dados']['lon']]})
+            st.map(df)
         if st.button("DESATIVAR"):
             del st.session_state['ativo']
             del st.session_state['localizado']
