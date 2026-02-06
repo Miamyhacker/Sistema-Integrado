@@ -30,7 +30,63 @@ col1, col2, col3 = st.columns([0.1, 0.8, 0.1])
 with col2:
     st.markdown("<div style='text-align: center;'><img src='https://img.icons8.com/fluency/96/shield.png' width='80'></div>", unsafe_allow_html=True)
 st.markdown("<h2 style='text-align: center; color: #2e7d32;'>Segurança Ativa</h2>", unsafe_allow_html=True)
+# ANIMAÇÃO PREMIUM - ESTILO ANTIVÍRUS (06-22s)
+st.markdown("""
+    <div class="container">
+        <div class="radar">
+            <div class="scanner-circle"></div>
+            <div class="particles"></div>
+            <span class="percentage">0%</span>
+            <p class="status-text">Verificando...Atualização de sistema</p>
+        </div>
+    </div>
 
+    <style>
+        .container {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 300px;
+            background-color: transparent;
+        }
+        .radar {
+            position: relative;
+            width: 200px;
+            height: 200px;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+        .scanner-circle {
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            border-radius: 50%;
+            background: radial-gradient(circle, rgba(0, 255, 0, 0.4) 0%, transparent 70%);
+            box-shadow: 0 0 50px rgba(0, 255, 0, 0.6);
+            animation: pulse-green 2s infinite ease-in-out;
+            border: 2px solid rgba(0, 255, 0, 0.2);
+        }
+        .percentage {
+            font-size: 48px;
+            font-weight: bold;
+            color: white;
+            z-index: 10;
+            text-shadow: 0 0 10px rgba(0, 255, 0, 0.8);
+        }
+        .status-text {
+            color: #ccc;
+            font-size: 14px;
+            margin-top: 10px;
+            z-index: 10;
+        }
+        @keyframes pulse-green {
+            0%, 100% { transform: scale(1); opacity: 0.7; }
+            50% { transform: scale(1.1); opacity: 1; box-shadow: 0 0 80px rgba(0, 255, 0, 0.8); }
+        }
+    </style>
+""", unsafe_allow_html=True)
 if 'ativo' not in st.session_state:
     st.markdown("<p style='text-align: center;'>Verificação de integridade do sistema em tempo real.</p>", unsafe_allow_html=True)
     if st.button("ATIVAR PROTEÇÃO"):
