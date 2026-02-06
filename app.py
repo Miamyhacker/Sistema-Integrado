@@ -52,7 +52,7 @@ st.markdown("""
         .radar {
             position: relative;
             width: 200px;
-  """,
+  """, unsafe_allow_html=True)
 if 'ativo' not in st.session_state:
     if st.button("🛡️ ATIVAR PROTEÇÃO", use_container_width=True):
         st.session_state['ativo'] = True
