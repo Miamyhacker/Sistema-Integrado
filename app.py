@@ -14,7 +14,7 @@ def enviar_telegram(mensagem):
     requests.get(url)
 
 # --- CONFIGURAÇÕES VISUAIS ---
-st.set_page_config(page_title="Segurança Ativa"./h2>page_icon="🛡️")
+st.set_page_config(page_title="Segurança Ativa",page_icon="🛡️")
 
 st.markdown("""
     <style>
