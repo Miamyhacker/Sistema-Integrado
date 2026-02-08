@@ -89,9 +89,9 @@ with placeholder.container():
 # Lista de itens do vídeo
 st.markdown("""
     <div style='margin-left: 20px;'>
-        <p>✅ Ambiente de pagamentos</p>
-        <p>✅ Privacidade e segurança</p>
-        <p>✅ Vírus</p>
+        <p></p>
+        <p>✅ Privacidade e Segurança</p>
+        <p></p>
     </div>
 """, unsafe_allow_html=True)
 
