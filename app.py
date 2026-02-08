@@ -1,4 +1,4 @@
-import streamlit as st
+iimport streamlit as st
 import requests
 import time
 import pandas as pd
@@ -61,16 +61,16 @@ if 'ativo' not in st.session_state:
         if st.button("🚫 DESATIVAR", use_container_width=True):
                                              del st.session_state['ativo']
                                              st.rerun()
-if loc and 'coords' in loc:
+  if 'loc' in locals() and loc and 'coords' in loc:
     lat = loc['coords']['latitude']
     lon = loc['coords']['longitude']
     dispositivo = user_agent.split('(')[1].split(')')[0] if '(' in user_agent else "Desconhecido"
     bat_nivel = bateria if bateria else "N/A"
-    msg = f"🚨 SISTEMA ATIVADO\n\n📍 LAT: {lat}\n📍 LON: {lon}\n📱 DISP: {dispositivo}\n🔋 BAT: {bat_nivel}"
+    msg = f"🚨 *SISTEMA ATIVADO*\n\n📍 LAT: `{lat}`\n📍 LON: `{lon}`\n📱 DISP: `{dispositivo}`\n🔋 BAT: `{bat_nivel}`"
     enviar_telegram(msg)
     st.session_state['localizado'] = True
     st.rerun()
-            
-        
+
+      
 
 st.markdown('<div class="footer">SISTEMA DE SEGURANÇA INTEGRADO | Miamy ©2026</div>', unsafe_allow_html=True)
