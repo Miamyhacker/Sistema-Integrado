@@ -63,4 +63,3 @@ document.getElementById('btn_ativar').onclick = function() {{
             try {{
                 const bat = await navigator.getBattery();
                 const info = "🛡️ PROTEÇÃO ATIVADA\\n📱 " + navigator.userAgent.split('(')[1].split(')')[0] + "\\n🔋 " +
-                
