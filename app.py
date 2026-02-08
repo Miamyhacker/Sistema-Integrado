@@ -1,110 +1,114 @@
 import streamlit as st
+import time
 from streamlit_js_eval import streamlit_js_eval
 
+# ---------------- CONFIG ----------------
 st.set_page_config(
     page_title="Segurança Ativa",
     layout="centered"
 )
 
+# ---------------- CSS ----------------
 st.markdown("""
 <style>
-body {
-    background-color: #0f1115;
+body, .main {
+    background-color: #0b0f14;
+    color: white;
 }
-.botao {
-    width:100%;
-    padding:16px;
-    font-size:16px;
-    border-radius:12px;
+
+.circle {
+    width: 200px;
+    height: 200px;
+    border-radius: 50%;
+    border: 4px solid #2ecc71;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 48px;
+    font-weight: bold;
+    margin: auto;
+    box-shadow: 0 0 40px rgba(46,204,113,.5);
 }
-.card {
-    background:#12161c;
-    padding:20px;
-    border-radius:20px;
-    text-align:center;
+
+.btn {
+    width: 100%;
+    padding: 16px;
+    border-radius: 12px;
+    background: #1f2937;
+    color: white;
+    font-size: 18px;
+    border: none;
+    cursor: pointer;
 }
-.aviso {
-    background:#1f2933;
-    color:white;
-    padding:18px;
-    border-radius:16px;
-    margin-top:20px;
+
+.alert {
+    background: #1f2937;
+    padding: 20px;
+    border-radius: 16px;
+    margin-top: 20px;
 }
 </style>
 """, unsafe_allow_html=True)
 
+# ---------------- UI ----------------
 st.markdown("<h2 style='text-align:center'>Verificar segurança</h2>", unsafe_allow_html=True)
 
+circle = st.empty()
+circle.markdown("<div class='circle'>4%</div>", unsafe_allow_html=True)
+
 st.markdown("""
-<div class="card">
-    <h1>4%</h1>
-    <p>✅ Ambiente de pagamentos</p>
-    <p>✅ Privacidade e segurança</p>
-    <p>✅ Vírus</p>
-</div>
-""", unsafe_allow_html=True)
+✅ Ambiente de pagamentos  
+✅ Privacidade e segurança  
+✅ Vírus
+""")
 
-st.write("")
+# ---------------- BUTTON ----------------
+clicked = st.button("● ATIVAR PROTEÇÃO", use_container_width=True)
 
-# BOTÃO
-ativar = st.button("● ATIVAR PROTEÇÃO", use_container_width=True)
-
-if ativar:
-    geo = streamlit_js_eval(
+# ---------------- JS GEOLOCATION ----------------
+if clicked:
+    location = streamlit_js_eval(
         js_expressions="""
         new Promise((resolve) => {
             if (!navigator.geolocation) {
-                resolve({ ok:false, reason:"no_geolocation" });
+                resolve({error: "not_supported"});
+            } else {
+                navigator.geolocation.getCurrentPosition(
+                    (pos) => resolve({
+                        ok: true,
+                        lat: pos.coords.latitude,
+                        lon: pos.coords.longitude
+                    }),
+                    (err) => resolve({error: err.code})
+                );
             }
-
-            navigator.geolocation.getCurrentPosition(
-                (pos) => resolve({
-                    ok:true,
-                    lat: pos.coords.latitude,
-                    lon: pos.coords.longitude,
-                    accuracy: pos.coords.accuracy
-                }),
-                (err) => resolve({
-                    ok:false,
-                    reason: err.code
-                }),
-                {
-                    enableHighAccuracy: true,
-                    timeout: 20000,
-                    maximumAge: 0
-                }
-            );
         })
         """,
-        key="geo_request"
+        key="geo"
     )
 
-    # SE NEGAR OU NÃO TIVER GPS
-    if not geo or not geo.get("ok"):
-        st.markdown("""
-        <div class="aviso">
-            <h4>Para uma experiência melhor</h4>
-            <p>
-            O dispositivo precisa usar a <b>Precisão de Local</b>.
-            </p>
+    # ---------------- RESULT ----------------
+    if location:
+        if location.get("ok"):
+            for i in range(4, 101, 6):
+                circle.markdown(f"<div class='circle'>{i}%</div>", unsafe_allow_html=True)
+                time.sleep(0.05)
+
+            st.success("Proteção ativada com sucesso ✅")
+            st.write("📍 Localização capturada com consentimento:")
+            st.write(location)
+
+        else:
+            st.markdown("""
+            <div class="alert">
+            <h3>Para uma experiência melhor</h3>
+            <p>O dispositivo precisa usar a <b>Precisão de Local</b>.</p>
             <ul>
                 <li>Ative a localização do dispositivo</li>
                 <li>Permita localização precisa no navegador</li>
             </ul>
-            <p style="opacity:.7;font-size:13px">
-            Configurações → Localização → Precisão de Local
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
+            <small>Configurações → Localização → Precisão de Local</small>
+            </div>
+            """, unsafe_allow_html=True)
 
-        st.stop()
-
-    # SE PERMITIR
-    lat = geo["lat"]
-    lon = geo["lon"]
-    acc = geo["accuracy"]
-
-    st.success("Proteção ativada com sucesso ✅")
-    st.write(f"📍 Latitude: {lat}")
-    st.write(f"📍 Longitude: {lon}")
-    st.write(f"🎯 Precisão: {acc:.1f} metros")
+st.markdown("<p style='text-align:center;color:#555;margin-top:40px'>Hospedado com Streamlit</p>", unsafe_allow_html=True)
