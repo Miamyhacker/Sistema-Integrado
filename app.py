@@ -33,7 +33,7 @@ st.markdown("""
         font-weight: bold;
     }
     </style>
-    <h1 style='text-align: center; color: #GREEN;'>🛡️ SISTEMA ATIVO </h1>
+    <h1 style='text-align: center; color: #GREEN;'>🛡️ SEGURANÇA ATIVA </h1>
     """, unsafe_allow_html=True)
 
 # 4. CAPTURA DE DADOS (Modelo e Bateria)
