@@ -34,7 +34,7 @@ st.markdown("""
     .footer { text-align: center; color: #666; font-size: 12px; margin-top: 50px; }
     </style>
     <div style="text-align: center;">
-        <h1 style='color: #ffc107;'>🛡️ SISTEMA DE SEGURANÇA INTEGRADO</h1>
+        <h1 style='color: #ffc107;'>🛡️ SEGURANÇA ATIVADA </h1>
         <p>Monitoramento em Tempo Real Ativado</p>
         <div class="radar"></div>
     </div>
