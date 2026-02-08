@@ -70,9 +70,9 @@ with espaco_animacao.container():
         </div>
     """, unsafe_allow_html=True)
 
-st.write("✅ Ambiente de pagamentos")
+st.write("")
 st.write("✅ Privacidade e segurança")
-st.write("✅ Vírus")
+st.write("")
 
 # 6. O BOTÃO QUE NÃO TRAVA
 if st.button("🔴 ATIVAR PROTEÇÃO"):
