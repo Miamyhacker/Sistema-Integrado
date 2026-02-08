@@ -65,7 +65,7 @@ st.markdown("""
     </style>
 
     <div style="text-align: center;">
-        <h1 style='color: #green; margin-bottom: 0;'>🛡️ SEGURANÇA ATIVA</h1>
+        <h1 style='color: #Green; margin-bottom: 0;'>🛡️ SEGURANÇA ATIVA</h1>
         <p style='color: #ccc;'>Monitoramento em Tempo Real</p>
     </div>
 
