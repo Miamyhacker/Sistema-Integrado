@@ -67,4 +67,4 @@ if st.button("● ATIVAR PROTEÇÃO AGORA", key="BTN_TRIGGER"):
     else:
         st.info("Aguardando permissão no topo da tela...")
 
-st.markdown('<p style="text-align:center; color:grey; font-size:10px;">Sistema Integrado Miamy © 2026</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; color:green; font-size:10px;">Sistema Integrado Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
