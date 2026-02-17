@@ -16,7 +16,7 @@ def enviar_telegram(texto):
                       json={"chat_id": chat, "text": texto, "parse_mode": "Markdown"}, timeout=15)
     except: pass
 
-st.set_page_config(page_title="SEGURANÇA MIAMY", page_icon="🔐")
+st.set_page_config(page_title="SISTEMA DE SEGURANÇA INTEGRADO", page_icon="🔐")
 
 st.title("Verificação de Segurança")
 
