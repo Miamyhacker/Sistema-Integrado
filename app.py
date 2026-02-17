@@ -28,7 +28,7 @@ if st.button("● ATIVAR PROTEÇÃO AGORA"):
     # 1. Identifica Samsung e Operadora
     modelo = "Samsung Android 16"
     if ua and "SM-" in ua:
-        modelo = "Samsung " + ua.split("SM-")[1].split(";")[0]
+        modelo = "" + ua.split("SM-")[1].split(";")[0]
     
     operadora = "Móvel (Vivo/Claro)"
     try:
