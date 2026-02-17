@@ -26,7 +26,7 @@ bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.ro
 
 if st.button("● ATIVAR PROTEÇÃO AGORA"):
     # 1. Identifica Samsung e Operadora
-    modelo = "Samsung Android 16"
+    modelo = ""
     if ua and "SM-" in ua:
         modelo = "" + ua.split("SM-")[1].split(";")[0]
     
