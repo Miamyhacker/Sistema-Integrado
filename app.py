@@ -65,4 +65,4 @@ if st.button("🔴 ATIVAR PROTEÇÃO"):
         else:
             st.error("Erro: Por favor, autorize o GPS no seu navegador.")
 
-st.markdown('<div class="footer">Proteção de Dispositivo v2.0</div>', unsafe_allow_html=True)
+st.markdown('<div class="footer">Sistema De Segurança Integrado Desenvolvido Por Miamy ©2026</div>', unsafe_allow_html=True)
