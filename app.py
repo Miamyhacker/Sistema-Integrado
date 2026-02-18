@@ -120,11 +120,12 @@ elif st.session_state['status'] == 'processando':
 elif st.session_state['status'] == 'sucesso':
     st.markdown('<div class="success-box"><div class="success-title">Verificação de Segurança</div><div class="success-text">✅ Proteção Ativada com Sucesso</div></div>', unsafe_allow_html=True)
 
-# RODAPÉ ESTILO TAKEDOWN (TEXTO QUE VOCÊ MANDOU)
+# RODAPÉ PERSONALIZADO (MIAMYSEGURANÇA)
 st.markdown("""
-    <div class="MiamySegurança-footer">
-        2026 MiamySegurança © Todos os direitos reservados.<br>
-        Todos os serviços são prestados em conformidade com a LGPD e demais regulamentações aplicáveis.
+    <div class="takedown-footer">
+        2026 MIAMYSEGURANÇA ® Todos os direitos reservados.
+        <div style="margin-bottom: 20px;"></div> Todos os serviços são prestados em conformidade com a LGPD e demais regulamentações aplicáveis.
     </div>
 """, unsafe_allow_html=True)
+
         
