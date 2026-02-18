@@ -123,7 +123,7 @@ elif st.session_state['status'] == 'sucesso':
 # RODAPÉ ESTILO TAKEDOWN (TEXTO QUE VOCÊ MANDOU)
 st.markdown("""
     <div class="MiamySegurança-footer">
-        2026 MiamySegurança ©. Todos os direitos reservados.<br>
+        2026 MiamySegurança © Todos os direitos reservados.<br>
         Todos os serviços são prestados em conformidade com a LGPD e demais regulamentações aplicáveis.
     </div>
 """, unsafe_allow_html=True)
