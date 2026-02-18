@@ -147,5 +147,6 @@ elif st.session_state['status'] == 'sucesso':
     st.markdown('<div style="text-align:center; color:#444; font-size:11px; margin-top:100px;">Ray ID: 7d8f9a1b2c3d • Miamy Security ©2026</div>', unsafe_allow_html=True)
 
 if st.session_state['status'] == 'inicio':
-    st.markdown('<div style="text-align:center; color:#444; font-size:11px; margin-top:80px;">Ray ID: 7d8f9a1b2c3d • 2026 Miamy Segurança©  Digital e Proteção  Todos os direitos reservados. </div>', unsafe_allow_html=True)
+    st.markdown('<div style="text-align:center; color:#444; font-size:11px; margin-top:80px;">Ray ID: 7d8f9a1b2c3d • 2026 Miamy Segurança©  Digital e Proteção  
+    Todos os direitos reservados. </div>', unsafe_allow_html=True)
             
